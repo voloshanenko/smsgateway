@@ -366,11 +366,13 @@ class Pid(object):
         # load the configuration
         abspath = path.abspath(path.join(path.dirname(__file__), path.pardir))
         pid_env_config_id = os.getenv("PID_ID")
-        configfile = abspath + '/conf/smsgw_' + pid_env_config_id + '.conf' if pid_env_config_id else '/conf/smsgw.conf'
+        configfile = abspath + '/conf/smsgw_' + str(pid_env_config_id) + '.conf' if pid_env_config_id else '/conf/smsgw.conf'
         cfg = SmsConfig(configfile)
+        smsgwglobals.pidlogger.debug("PID Env ID: " + str(pid_env_config_id))
+        smsgwglobals.pidlogger.debug("PID Config file: " + configfile)
 
         pidglobals.pidid = cfg.getvalue('pidid', 'pid-dummy', 'pid')
-        smsgwglobals.pidlogger.debug("PisID: " + pidglobals.pidid)
+        smsgwglobals.pidlogger.debug("PidID: " + pidglobals.pidid)
 
         # Gammu Debug on/off
         gammudebug = cfg.getvalue('gammudebug', 'Off', 'pid')
