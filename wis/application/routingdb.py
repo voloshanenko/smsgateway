@@ -185,7 +185,7 @@ class Database(object):
                                          " :regex: " + route["regex"] +
                                          " :sms_count: " + str(sms_count) +
                                          " :sms_limit: " + str(route["sms_limit"]) +
-                                         " :account_balance: " + route["account_balance"] +
+                                         " :account_balance: " + str(route["account_balance"]) +
                                          " :imsi: " + route["imsi"] +
                                          " :lbfactor: " + str(route["lbfactor"]) +
                                          " :wisurl: " + route["wisurl"] +

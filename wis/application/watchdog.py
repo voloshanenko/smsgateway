@@ -127,13 +127,13 @@ class Watchdog_Route(threading.Thread):
             smsgwglobals.wislogger.debug("WATCHDOG [route: " + str(self.routingid) + "] SEND Get peers NOTOK")
 
             # On 500 error - (probably PID/route died - try to reprocess sms)
-            sleep(1)
+            sleep(2)
             try:
                 Helper.processsms(smstrans, reprocess_sms=True)
             except apperror.NoRoutesFoundError:
                 pass
             else:
-                smsid = sms.smstransfer["sms"]["smsid"]
+                smsid = smstrans["sms"]["smsid"]
                 self.queue.put(smsid)
         except socket.timeout as e:
             smstrans.smsdict["status"] = 400
@@ -142,14 +142,14 @@ class Watchdog_Route(threading.Thread):
             smsgwglobals.wislogger.debug("WATCHDOG [route: " + str(self.routingid) + "] SEND Socket connection timeout")
 
             # On 400 error - (probably PID/route died - try to reprocess sms)
-            sleep(1)
+            sleep(3)
             try:
                 Helper.processsms(smstrans, reprocess_sms=True)
             except apperror.NoRoutesFoundError:
                 pass
             else:
-                smsid = sms.smstransfer["sms"]["smsid"]
-            self.queue.put(smsid)
+                smsid = smstrans["sms"]["smsid"]
+                self.queue.put(smsid)
 
     def process(self):
         smsgwglobals.wislogger.debug("WATCHDOG [route: " + str(self.routingid) + "] processing sms")
@@ -163,6 +163,8 @@ class Watchdog_Route(threading.Thread):
             pass
         else:
             self.send(sms)
+            # Each modem in any case will be sending SMS in sequantal mode.
+            sleep(2)
             self.queue.task_done()
             # Re run processing to make sure that queue empty
             self.process()
@@ -298,7 +300,7 @@ class Watchdog(threading.Thread):
                 smstrans.smsdict["status"] = 106
                 smstrans.updatedb()
                 Helper.processsms(smstrans, reprocess_sms=True)
-                smsid = sms.smstransfer["sms"]["smsid"]
+                smsid = smstrans["sms"]["smsid"]
                 self.queue.put(smsid)
             elif route[0]["wisid"] != wisglobals.wisid:
                 self.deligate(smstrans, route)

@@ -209,7 +209,7 @@ class Modem(object):
                  balance_ussd_reply = usbmodem.process_ussd(modem["balance_ussd"])
                  modem["account_balance"] = usbmodem.parse_ussd(balance_ussd_reply, modem["balance_regex"])
             else:
-                modem["account_balance"] = None
+                modem["account_balance"] = "N/A"
             modem["sms_limit"] = modem["sms_limit"] if "sms_limit" in modem else 0
 
             pidglobals.modemcondict[modem['modemid']] = usbmodem

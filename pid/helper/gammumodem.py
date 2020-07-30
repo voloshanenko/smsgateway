@@ -98,7 +98,7 @@ class USBModem(object):
         return USSD_REPLY
 
     def parse_ussd(self, ussd_reply, ussd_regex):
-        ussd_status = None
+        ussd_status = "N/A"
         if ussd_reply is not None and "Text" in ussd_reply:
             ussd_matches = re.search(ussd_regex, ussd_reply["Text"])
             if ussd_matches is not None:
