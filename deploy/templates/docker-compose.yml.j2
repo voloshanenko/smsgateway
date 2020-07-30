@@ -18,6 +18,8 @@ services:
     volumes:
       - ${LOCAL_DIR}/logs:/app/logs/
       - ${LOCAL_DIR}/db:/app/common/sqlite/
+    networks:
+      - webproxy
 
   pis:
     build: .
@@ -29,6 +31,8 @@ services:
     volumes:
       - ${LOCAL_DIR}/logs:/app/logs/
       - ${LOCAL_DIR}/db:/app/common/sqlite/
+    networks:
+      - webproxy
 
 {% for items in tty_devices.stdout_lines %}
   pid_{{ loop.index }}:
@@ -41,5 +45,13 @@ services:
     volumes:
       - ${LOCAL_DIR}/logs:/app/logs/
       - ${LOCAL_DIR}/db:/app/common/sqlite/
+    networks:
+      - webproxy
 
 {% endfor %}
+    networks:
+      - webproxy
+networks:
+  webproxy:
+    external:
+      name: webproxy

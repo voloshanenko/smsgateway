@@ -47,6 +47,9 @@ def main():
             endpoint_id = current_stack[0]['EndpointId']
             stack_id = current_stack[0]['Id']
             stack_containers, containers_images = containers_list(endpoint_id=endpoint_id, stack_name=portainer_stack_name, jwt_token=jwt_token)
+            print("...Remove stack: '" + portainer_stack_name + "'")
+            stacks_api.stack_delete(id=stack_id, endpoint_id=endpoint_id)           
+
             if stack_containers:
                 for container in stack_containers:
                     print("......Found container: '" + container + "'")
@@ -58,9 +61,11 @@ def main():
                     print("......Found container image: '" + image + "'")
                     print("......Delete image: '" + image + "'")
                     delete_container_image(endpoint_id=endpoint_id, image_name=image, jwt_token=jwt_token)
-
-            print("...Remove stack: '" + portainer_stack_name + "'")
-            stacks_api.stack_delete(id=stack_id, endpoint_id=endpoint_id)
+            try:
+                print("...Remove stack: '" + portainer_stack_name + "'")
+                stacks_api.stack_delete(id=stack_id, endpoint_id=endpoint_id)
+            except:
+                pass
         else:
             print("...Stack '" + portainer_stack_name + "' not found on portainer side...")
             endpoint_id=1
