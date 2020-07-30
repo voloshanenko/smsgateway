@@ -1,0 +1,58 @@
+version: '2'
+
+services:
+
+  wis:
+    build: .
+    ports:
+    - "7777:7777"
+    working_dir: /app/wis
+    command: ["python", "wis.py"]
+    restart: unless-stopped
+    environment:
+    - DB_HOST=${DB_HOST}
+    - DB_NAME_CDR=${DB_NAME_CDR}
+    - DB_NAME_USERS=${DB_NAME_USERS}
+    - DB_USERNAME=${DB_USERNAME}
+    - DB_PASSWORD=${DB_PASSWORD}
+    - ASTERISK_HOST=${ASTERISK_HOST}
+    - ASTERISK_AMI_USERNAME=${ASTERISK_AMI_USERNAME}
+    - ASTERISK_AMI_PASSWORD=${ASTERISK_AMI_PASSWORD}  
+    volumes:
+      - .:/app
+
+  pis:
+    build: .
+    ports:
+    - "7788:7788"
+    working_dir: /app/pis
+    command: ["python", "pis.py"]
+    restart: unless-stopped
+    environment:
+    - DB_HOST=${DB_HOST}
+    - DB_NAME_CDR=${DB_NAME_CDR}
+    - DB_NAME_USERS=${DB_NAME_USERS}
+    - DB_USERNAME=${DB_USERNAME}
+    - DB_PASSWORD=${DB_PASSWORD}
+    - ASTERISK_HOST=${ASTERISK_HOST}
+    - ASTERISK_AMI_USERNAME=${ASTERISK_AMI_USERNAME}
+    - ASTERISK_AMI_PASSWORD=${ASTERISK_AMI_PASSWORD}
+    volumes:
+      - .:/app
+
+  pid:
+    build: .
+    working_dir: /app/pid
+    command: ["python", "pid.py"]
+    restart: unless-stopped
+    environment:
+    - DB_HOST=${DB_HOST}
+    - DB_NAME_CDR=${DB_NAME_CDR}
+    - DB_NAME_USERS=${DB_NAME_USERS}
+    - DB_USERNAME=${DB_USERNAME}
+    - DB_PASSWORD=${DB_PASSWORD}
+    - ASTERISK_HOST=${ASTERISK_HOST}
+    - ASTERISK_AMI_USERNAME=${ASTERISK_AMI_USERNAME}
+    - ASTERISK_AMI_PASSWORD=${ASTERISK_AMI_PASSWORD}
+    volumes:
+      - .:/app

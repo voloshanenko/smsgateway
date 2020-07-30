@@ -1,0 +1,12 @@
+---
+wis_service_identifier: "wis"
+pis_service_identifier: "pis"
+pid_service_identifier: "pid"
+
+systemd_dir: "/etc/systemd/system"
+smsgateway_local_dir: "/var/lib/smsgateway"
+smsgateway_docker_dir: "/app"
+initial_pid_remote_port: 2000
+balance_ussd: "*111#"
+balance_regex: ".* (.*)grn, .*"
+gammu_remote_url: "https://dl.cihar.com/gammu/releases/gammu-1.41.0.zip"

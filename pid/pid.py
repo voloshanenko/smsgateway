@@ -14,14 +14,19 @@
 # limitations under the License.
 
 import sys
-import time
 from datetime import datetime
 import urllib.request
 import urllib.error
 from os import path
 from ws4py.client.threadedclient import WebSocketClient
+from time import sleep
 import json
 import re
+import os
+import subprocess
+import time
+import traceback
+import configparser
 sys.path.insert(0, "..")
 
 import pidglobals
@@ -33,6 +38,7 @@ from helper.heartbeat import Heartbeat
 from helper.wrapped import WrappedUSBModem
 from helper.gammumodem import USBModem
 
+SOCAT_PROC = {}
 
 class PidWsClient(WebSocketClient):
     def opened(self):
@@ -91,10 +97,13 @@ class PidWsClient(WebSocketClient):
             message = GlobalHelper.encodeAES(plaintext)
             # reply sms-status to PIS
             self.send(message)
+            #Make sure answer will be delivered before shutdown (if will happen)
+            sleep(0.1)
 
             # Exit PID on ERROR on sending sms
             if "ERROR" in tosend['status']:
                 closingreason = "Modem ERROR while sending SMS!"
+
                 pidglobals.closingcode = 4000
                 self.close(code=4000, reason=closingreason)
 
@@ -157,7 +166,7 @@ class Modem(object):
     """Class used to handle GAMMU modem requests
     """
     @staticmethod
-    def connectmodems(modemlist, gammucfg):
+    def connectmodems(modemlist):
         # init empty modemlist and connection dictionaries in pisglobals
         pidglobals.modemlist = []
         pidglobals.modemcondict = {}
@@ -165,31 +174,114 @@ class Modem(object):
         # init USBmodem connection
         # and remove modem if connection makes trouble...
         for modem in modemlist:
-            smsgwglobals.pidlogger.info(pidglobals.pidid + ": " +
-                                        "Trying to init Modem: " +
-                                        str(modem))
-            if pidglobals.wrapgammu:
-                smsgwglobals.pidlogger.info("Loading WRAPPER for Gammu CLI")
-                usbmodem = WrappedUSBModem(pidglobals.gammucmd,
-                                           gammucfg,
-                                           modem['gammusection'],
-                                           modem['pin'],
-                                           modem['ctryexitcode'])
-            else:
-                smsgwglobals.pidlogger.info("Loading Python Gammu")
-                usbmodem = USBModem(gammucfg,
-                                    modem['gammusection'],
-                                    modem['pin'],
-                                    modem['ctryexitcode'])
+            Modem.connect_modem(modem)
 
-            # for each modemid persist the object and the modemn pidglobals
-            if usbmodem.get_status():
-                pidglobals.modemcondict[modem['modemid']] = usbmodem
-                pidglobals.modemlist.append(modem)
+    @staticmethod
+    def connect_modem(modem):
+        smsgwglobals.pidlogger.info(pidglobals.pidid + ": " +
+                            "Trying to init Modem: " +
+                            str(modem))
+
+        gammucfg = Modem.generate_gammu_config(modem)
+
+        if pidglobals.wrapgammu:
+            smsgwglobals.pidlogger.info("Loading WRAPPER for Gammu CLI")
+            usbmodem = WrappedUSBModem(pidglobals.gammucmd,
+                               gammucfg,
+                               modem['gammusection'],
+                               modem['pin'],
+                               modem['ctryexitcode'])
+        else:
+            smsgwglobals.pidlogger.info("Loading Python Gammu")
+            usbmodem = USBModem(gammucfg,
+                        modem['gammusection'],
+                        modem['pin'],
+                        modem['ctryexitcode'])
+
+        # for each modemid persist the object and the modemn pidglobals
+        if usbmodem.get_status():
+            modem['imsi'] = usbmodem.get_sim_imsi()
+            if "block_incoming_calls" in modem and modem["block_incoming_calls"]:
+                # Block all incoming calls
+                usbmodem.process_ussd("*35*0000#")
+
+            if "balance_ussd" in modem and "balance_regex" in modem:
+                 balance_ussd_reply = usbmodem.process_ussd(modem["balance_ussd"])
+                 modem["account_balance"] = usbmodem.parse_ussd(balance_ussd_reply, modem["balance_regex"])
             else:
+                modem["account_balance"] = None
+            modem["sms_limit"] = modem["sms_limit"] if "sms_limit" in modem else 0
+
+            pidglobals.modemcondict[modem['modemid']] = usbmodem
+            # As we can use connect_modem to reconnect - add to list only if not already exist
+            if modem not in pidglobals.modemlist:
+                pidglobals.modemlist.append(modem)
+        else:
+            smsgwglobals.pidlogger.error(pidglobals.pidid + ": " +
+                                 "Unable to init USBModem: " +
+                                 str(modem))
+
+            # Kill the socat process if exist
+            if SOCAT_PROC.get(modem["modemid"]):
+                SOCAT_PROC[modem["modemid"]].kill()
+            return None
+
+    @staticmethod
+    def generate_gammu_config(modem):
+        abspath = path.abspath(path.join(path.dirname(__file__), path.pardir))
+        gammu_config_path = abspath + "/conf/modem_" + modem['modemid'] + ".conf"
+        gammu_section = ""
+        config = configparser.ConfigParser()
+        if modem['gammusection'] != 0:
+            gammu_section = "_" + modem['gammusection']
+        gammu_section_title = "gammu" + gammu_section
+
+        config.add_section(gammu_section_title)
+        config[gammu_section_title]['port'] = Modem.get_gammu_port(modem)
+        config[gammu_section_title]['name'] = modem["modemname"]
+        config[gammu_section_title]['connection'] = modem["connection"] if modem.get("connection") else "at"
+        config[gammu_section_title]['gammucoding'] = modem["gammuencoding"] if modem.get("gammuencoding") else "utf8"
+        config[gammu_section_title]['logformat'] = modem["logformat"] if modem.get("logformat") else "textalldate"
+        config[gammu_section_title]['logfile'] = modem["logfile"] if modem.get("logfile") else abspath +  "/logs/modem_" + modem["modemid"] + ".log"
+
+        with open(gammu_config_path, 'w+') as configfile:
+            config.write(configfile)
+
+        return gammu_config_path
+
+    @staticmethod
+    def get_gammu_port(modem):
+        gammu_port = None
+        if modem.get("remote_ip") and modem.get("remote_port"):
+            gammu_port = Modem.init_remote_serial_port(modem)
+        else:
+            try:
+                gammu_port = modem["port"] if modem.get("port") else ""
+            except:
                 smsgwglobals.pidlogger.error(pidglobals.pidid + ": " +
-                                             "Unable to init USBModem: " +
-                                             str(modem))
+                             "Unable to read port for for USBModem " + modem["modemid"])
+        return gammu_port if gammu_port else ""
+
+    @staticmethod
+    def init_remote_serial_port(modem):
+        # Try to use socat to init remote serial port
+        device_name = "/dev/vmodem_" + modem["modemid"]
+        commandLineCode = "/usr/bin/socat pty,link=" + device_name + ",waitslave tcp:" + modem["remote_ip"] + ":" + modem["remote_port"] + ",keepalive,keepidle=10,keepintvl=10"
+        try:
+            socat_proc = subprocess.Popen(commandLineCode,
+                                          stdin=subprocess.PIPE,
+                                          stdout=subprocess.PIPE,
+                                          stderr=subprocess.PIPE, shell=True)
+
+        except OSError:
+            smsgwglobals.pidlogger.error(pidglobals.pidid + ": " +
+                                         "Unable to init socat connection to: " + modem["remote_ip"] + ":" + modem["remote_ip"] + " for USBModem " + modem["modemid"])
+            print(traceback.format_exc())
+        # Check if our socat process still running
+        global SOCAT_PROC
+        if socat_proc.poll() is None:
+            SOCAT_PROC[modem["modemid"]] = socat_proc
+            return device_name
 
     @staticmethod
     def sendsms(sms):
@@ -201,18 +293,37 @@ class Modem(object):
 
         if pidglobals.testmode:
             # special answers if testmode is true!
-            if (sms['content'] == "ERROR" or
-               sms['content'] == "SUCCESS"):
+            if sms['content'] == "SUCCESS":
                 time.sleep(2)
-                status['status'] = sms['content']
+                status['status'] = "SUCCESS"
+                status['status_code'] = 1
+
+            elif sms['content'] == "ERROR":
+                time.sleep(2)
+                status['status'] = "ERROR"
+                status['status_code'] = 100
 
             elif sms['content'] == "LONGWAIT":
                 # has to be longer than maxwaitpid in smsgw.conf
                 time.sleep(130)
                 status['status'] = "SUCCESS"
-
-            elif sms['content'] == "TESTMARIO":
+                status['status_code'] = 1
+            elif sms['content'] == "TESTMARIO_1":
                 status['status'] = "SUCCESS"
+                status['status_code'] = 1
+            elif sms['content'] == "TESTMARIO_2":
+                status['status'] = "SUCCESS"
+                status['status_code'] = 1
+            elif sms['content'] == "TESTMARIO_3":
+                status['status'] = "SUCCESS"
+                status['status_code'] = 1
+            elif sms['content'] == "TESTMARIO_4":
+                status['status'] = "SUCCESS"
+                status['status_code'] = 1
+            elif sms['content'] == "TESTMARIO_5":
+                status['status'] = "SUCCESS"
+                status['status_code'] = 1
+
 
         if "status" in status:
             # exit if testmode sms was sent
@@ -220,24 +331,42 @@ class Modem(object):
 
         # normal operation
         sentstatus = False
+        status_code = None
         if sms['modemid'] in pidglobals.modemcondict:
+            global SOCAT_PROC
+            # If we use socat to establish connection to the remote modem, check if socket still alive
+            if sms["modemid"] in SOCAT_PROC:
+                modem_socat = SOCAT_PROC[sms["modemid"]]
+                # If connection dead - establish it again
+                if modem_socat.poll() is not None:
+                    for modem in pidglobals.modemlist:
+                        if modem["modemid"] == sms["modemid"]:
+                            smsgwglobals.pidlogger.info(pidglobals.pidid + ": " +
+                                                        "Socat connection DEAD to: " + modem["remote_ip"] + ":" +
+                                                        modem["remote_ip"] + " for USBModem " + modem["modemid"] +
+                                                        " . RE INIT connection")
+                            Modem.connect_modem(modem)
+
             usbmodem = pidglobals.modemcondict[sms['modemid']]
-            sentstatus = usbmodem.send_SMS(sms['content'],
+            sentstatus, status_code = usbmodem.send_SMS(sms['content'],
                                            sms['targetnr'])
         if sentstatus:
             status['status'] = "SUCCESS"
+            status['status_code'] = status_code
         else:
             status['status'] = "ERROR"
+            status['status_code'] = status_code
 
         return status
 
 
 class Pid(object):
     def run(self):
+
         # load the configuration
         abspath = path.abspath(path.join(path.dirname(__file__), path.pardir))
-        configfile = abspath + '/conf/smsgw.conf'
-        gammucfg = abspath + '/conf/gammu.conf'
+        pid_env_config_id = os.getenv("PID_ID")
+        configfile = abspath + '/conf/smsgw_' + pid_env_config_id + '.conf' if pid_env_config_id else '/conf/smsgw.conf'
         cfg = SmsConfig(configfile)
 
         pidglobals.pidid = cfg.getvalue('pidid', 'pid-dummy', 'pid')
@@ -322,7 +451,7 @@ class Pid(object):
                                      " - invalid regex!")
 
         # connect to USBModems and persist in pidglobals
-        Modem.connectmodems(modemlist, gammucfg)
+        Modem.connectmodems(modemlist)
 
         smsgwglobals.pidlogger.debug(pidglobals.pidid + ": " +
                                      "ModemList: " +

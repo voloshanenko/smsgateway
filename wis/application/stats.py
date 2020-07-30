@@ -75,6 +75,7 @@ class Logstash():
             datafieldsrow['targetnr'] = re.sub('.{3}$', 'XXX', sms['targetnr'])
             datafieldsrow['appid'] = sms['appid']
             datafieldsrow['modemid'] = sms['modemid']
+            datafieldsrow['imsi'] = sms['imsi']
             datafieldsrow['sourceip'] = sms['sourceip']
             datafieldsrow['xforwardedfor'] = sms['xforwardedfor']
 

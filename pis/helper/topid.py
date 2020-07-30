@@ -46,11 +46,12 @@ class PID(object):
                                              + str(modemlist))
 
     @staticmethod
-    def addclientsms(address, smsid, status="SENTTOMODEM"):
+    def addclientsms(address, smsid, status="SENTTOMODEM", status_code = 0):
         # add tupple wisid/smsid to form list of forwarded to PID
         address = str(address)
         element = {'smsid': smsid,
-                   'status': status}
+                   'status': status,
+                   'status_code': status_code}
         pisglobals.knownpids[address]['smslist'].append(element)
 
     @staticmethod
@@ -63,21 +64,25 @@ class PID(object):
                 # Get status
                 smsgwglobals.pislogger.debug("PID: SMSstatus " +
                                              sms['status'] +
+                                             ", SMSStatusCode " +
+                                             str(sms['status_code']) +
                                              " for SMS with id " +
                                              smsid +
                                              " found.")
-                return sms['status']
+                return sms['status'], sms['status_code']
 
         smsgwglobals.pislogger.debug("PID: No matching SMS for id " +
                                      smsid + "found!")
         return False
 
     @staticmethod
-    def setclientsmsstatus(address, smsid, setstatus):
+    def setclientsmsstatus(address, smsid, status, status_code):
         if PID.removeclientsms(address, smsid):
-            PID.addclientsms(address, smsid, setstatus)
+            PID.addclientsms(address, smsid, status, status_code)
             smsgwglobals.pislogger.debug("PID: SMSstatus " +
-                                         setstatus +
+                                         status +
+                                         ", SMSStatusCode " +
+                                         str(status_code) +
                                          " for SMS with ID " +
                                          smsid +
                                          " set!")
@@ -86,10 +91,11 @@ class PID(object):
     def removeclientsms(address, smsid):
         # remove smsid from list of sms for PID
         straddress = str(address)
-        status = PID.getclientsmsstatus(address, smsid)
+        status, status_code = PID.getclientsmsstatus(address, smsid)
         if status:
             element = {'smsid': smsid,
-                       'status': status}
+                       'status': status,
+                       'status_code': status_code}
             pisglobals.knownpids[straddress]['smslist'].remove(element)
             smsgwglobals.pislogger.debug("PID: Removed SMS with ID " +
                                          smsid +
@@ -161,8 +167,10 @@ class PID(object):
         smsgwglobals.pislogger.debug("PID: getclientaddress has kownpids = " +
                                      str(pisglobals.knownpids))
         for address in pisglobals.knownpids:
-            for modem in pisglobals.knownpids[address]['modemlist']:
-                if modem['modemid'] == modemid:
+            client = pisglobals.knownpids[address]
+            modems = client["modemlist"] if "modemlist" in client else {}
+            for modem in modems:
+                if modem is not None and modem['modemid'] == modemid:
                     smsgwglobals.pislogger.debug("PID: Address " +
                                                  address +
                                                  " returned.")

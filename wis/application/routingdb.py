@@ -21,6 +21,7 @@ from datetime import timedelta
 from common import smsgwglobals
 from application import wisglobals
 from common import error
+from common import database
 import threading
 
 rdblock = threading.Lock()
@@ -47,7 +48,10 @@ class Database(object):
                  "wisid TEXT, " +
                  "modemid TEXT, " +
                  "regex TEXT, " +
-                 "lbcount INTEGER, " +
+                 "sms_count INTEGER, " +
+                 "sms_limit INTEGER, " +
+                 "account_balance TEXT, " +
+                 "imsi TEXT, " +
                  "lbfactor INTEGER, " +
                  "wisurl TEXT, " +
                  "pisurl TEXT, " +
@@ -65,7 +69,10 @@ class Database(object):
                  "wisid, " +
                  "modemid, " +
                  "regex, " +
-                 "lbcount, " +
+                 "sms_count, " +
+                 "sms_limit, " +
+                 "account_balance, " +
+                 "imsi, " +
                  "lbfactor, " +
                  "wisurl, " +
                  "pisurl, " +
@@ -97,10 +104,10 @@ class Database(object):
             rdblock.release()
 
     # Read routing entries
-    def read_lbcount(self, routingid):
+    def read_sms_count(self, routingid):
         smsgwglobals.wislogger.debug("ROUTERDB: Read routing entries")
         query = ("SELECT " +
-                 "lbcount " +
+                 "sms_count " +
                  "FROM routing " +
                  "WHERE routingid = ?")
         try:
@@ -149,7 +156,10 @@ class Database(object):
         Attributes: wisid ... text-1st of primary key
         modemid ... text-serving modem number-2nd of primary key
         regex ... text-regex to match numbers for modem
-        lbcount ... int-number of sms delivered
+        sms_count ... int-number of sms delivered
+        sms_limit ... int-number of sms limit to sent via this route
+        account_balance ... float-number of amount of money on SIM card
+        imsi ... text-serving SIM card IMSI
         lbfactor ... int-factor if different contingets
         wisurl ... text-url of wis
         obsolete ... route got flag for deletion
@@ -157,17 +167,13 @@ class Database(object):
         changed ... datetime.utcnow-when changed
         """
         query = ("INSERT OR REPLACE INTO routing " +
-                 "(wisid, modemid, regex, lbcount, lbfactor, wisurl, " +
+                 "(wisid, modemid, regex, sms_count, sms_limit, account_balance, imsi, lbfactor, wisurl, " +
                  "pisurl, obsolete, modemname, routingid, changed) " +
-                 "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) ")
+                 "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) ")
 
-        # read lbcount if exist
-        lbcount = 0
-        r = self.read_lbcount(route["routingid"])
-        if r is None or len(r) == 0:
-            self.reset_lbcount()
-        else:
-            lbcount = r[0]["lbcount"]
+        # read sms_count if exist
+        db = database.Database()
+        sms_count = db.read_sms_count_by_imsi(route["imsi"])
 
         if changed is None:
             changed = datetime.utcnow()
@@ -177,13 +183,14 @@ class Database(object):
                                          " :wisid: " + route["wisid"] +
                                          " :modemid: " + route["modemid"] +
                                          " :regex: " + route["regex"] +
-                                         " :lbcount: " + str(lbcount) +
-                                         " :lbfactor: " +
-                                         str(route["lbfactor"]) +
+                                         " :sms_count: " + str(sms_count) +
+                                         " :sms_limit: " + str(route["sms_limit"]) +
+                                         " :account_balance: " + route["account_balance"] +
+                                         " :imsi: " + route["imsi"] +
+                                         " :lbfactor: " + str(route["lbfactor"]) +
                                          " :wisurl: " + route["wisurl"] +
                                          " :pisurl: " + route["pisurl"] +
-                                         " :obsolete: " +
-                                         str(route["obsolete"]) +
+                                         " :obsolete: " + str(route["obsolete"]) +
                                          " :modemname: " + route["modemname"] +
                                          " :routingid: " + route["routingid"] +
                                          " :changed: " + str(changed))
@@ -191,7 +198,10 @@ class Database(object):
             self.cur.execute(query, (route["wisid"],
                                      route["modemid"],
                                      route["regex"],
-                                     lbcount,
+                                     sms_count,
+                                     route["sms_limit"],
+                                     route["account_balance"],
+                                     route["imsi"],
                                      route["lbfactor"],
                                      route["wisurl"],
                                      route["pisurl"],
@@ -261,25 +271,26 @@ class Database(object):
         finally:
             rdblock.release()
 
-    # Update all routing entries set lbcount = 0
-    def reset_lbcount(self):
-        smsgwglobals.wislogger.debug("ROUTERDB: Reset lbcount")
+    # Update all routing entries set sms_count = 0
+    def reset_sms_count(self, routingid):
+        smsgwglobals.wislogger.debug("ROUTERDB: Reset sms_count")
 
         try:
             query = ("UPDATE routing SET " +
-                     "lbcount = ? "
+                     "sms_count = ? " +
+                     "WHERE routingid = ? "
                      )
 
             rdblock.acquire()
-            result = self.cur.execute(query, [0])
+            result = self.cur.execute(query, [0, routingid])
             count = result.rowcount
             self.con.commit()
             smsgwglobals.wislogger.debug("ROUTERDB: " + str(count) +
-                                         " lbcount CHANGED!")
+                                         " sms_count CHANGED!")
         except Exception as e:
             smsgwglobals.wislogger.critical("ROUTERDB: " + query +
                                             " failed! [EXCEPTION]:%s", e)
-            raise error.DatabaseError("Unable to reset lbcount! ", e)
+            raise error.DatabaseError("Unable to reset sms_count! ", e)
         finally:
             rdblock.release()
 
@@ -330,7 +341,7 @@ class Database(object):
 
             query = ("UPDATE routing SET " +
                      "obsolete = 14 " +
-                     "WHERE obsolete = 3"
+                     "WHERE obsolete = 1"
                      )
 
             result = self.cur.execute(query)
@@ -348,12 +359,12 @@ class Database(object):
             rdblock.release()
 
     # Raise obsolte on timeout in routing
-    def raise_lbcount(self, modemid):
-        smsgwglobals.wislogger.debug("ROUTERDB: Raising lbcount")
+    def raise_sms_count(self, modemid):
+        smsgwglobals.wislogger.debug("ROUTERDB: Raising sms_count")
 
         try:
             query = ("UPDATE routing SET " +
-                     "lbcount = lbcount + 1 " +
+                     "sms_count = sms_count + 1 " +
                      "WHERE modemid = ? "
                      )
 
@@ -362,12 +373,12 @@ class Database(object):
             count = result.rowcount
             self.con.commit()
             smsgwglobals.wislogger.debug("ROUTERDB: " + str(count) +
-                                         " lbcount updated!")
+                                         " sms_count updated!")
             return count
         except Exception as e:
             smsgwglobals.wislogger.critical("ROUTERDB: " + query +
                                             " failed! [EXCEPTION]:%s", e)
-            raise error.DatabaseError("Unable to change lbcount! ", e)
+            raise error.DatabaseError("Unable to change sms_count! ", e)
         finally:
             rdblock.release()
 
@@ -379,7 +390,7 @@ class Database(object):
         try:
             now = datetime.utcnow()
 
-            smsgwglobals.wislogger.debug("ROUTERDB: NEW HEARTBEAT" + str(now))
+            smsgwglobals.wislogger.debug("ROUTERDB: NEW HEARTBEAT " + str(now))
 
             query = ("UPDATE routing SET " +
                      "changed = ? ," +
@@ -387,6 +398,15 @@ class Database(object):
                      "WHERE routingid = ? " +
                      "AND obsolete < 14"
                      )
+
+            routes = self.read_routing()
+            current_route = [ route for route in routes if route['routingid'] == routingid ]
+            if current_route:
+                db = database.Database()
+                sms_count = db.read_sms_count_by_imsi(current_route[0]["imsi"])
+                # Looks like we enter new day - reset sms counter
+                if sms_count == 0:
+                    self.reset_sms_count(routingid)
 
             rdblock.acquire()
             result = self.cur.execute(query, [now, routingid])

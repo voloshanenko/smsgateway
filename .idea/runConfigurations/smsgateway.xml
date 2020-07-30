@@ -1,0 +1,8 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="smsgateway" type="Multirun" factoryName="Multirun" separateTabs="true" startOneByOne="true" markFailedProcess="true" hideSuccessProcess="false" delayTime="0">
+    <runConfiguration name="wis" type="Python" />
+    <runConfiguration name="pis" type="Python" />
+    <runConfiguration name="pid" type="Python" />
+    <method v="2" />
+  </configuration>
+</component>

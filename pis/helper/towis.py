@@ -62,13 +62,15 @@ class WIS(object):
                 data = {}
                 data['action'] = "register"
                 data['modemid'] = modem['modemid']
+                data['imsi'] = modem['imsi']
                 data['regex'] = modem['regex']
                 data['modemname'] = modem['modemname']
                 data['pisurl'] = pisglobals.pisurl
-                data['lbcount'] = 0
                 data['lbfactor'] = modem['lbfactor']
                 data['obsolete'] = 0
                 data['routingid'] = modem['routingid']
+                data['account_balance'] = modem['account_balance']
+                data['sms_limit'] = modem['sms_limit']
 
                 httpcode = WIS.loopwis(data)
 
@@ -119,7 +121,7 @@ class WIS(object):
         tosend = GlobalHelper.encodeAES(asjson)
 
         request = urllib.request.Request(wisurl['url'] +
-                                         "/smsgateway/api/managemodem")
+                                         "/api/managemodem")
         request.add_header("Content-Type",
                            "application/json;charset=utf-8")
         try:
@@ -145,7 +147,7 @@ class WIS(object):
         tosend = GlobalHelper.encodeAES(asjson)
 
         request = urllib.request.Request(pisglobals.activewisurl +
-                                         "/smsgateway/api/heartbeat")
+                                         "/api/heartbeat")
         request.add_header("Content-Type",
                            "application/json;charset=utf-8")
         try:

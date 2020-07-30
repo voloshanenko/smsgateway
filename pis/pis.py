@@ -19,6 +19,7 @@ from os import path
 import sys
 import time
 import uuid
+import socket
 from datetime import datetime
 from datetime import timedelta
 from ws4py.server.cherrypyserver import WebSocketTool, WebSocketPlugin
@@ -81,17 +82,13 @@ class Root(object):
                 until = now + timedelta(seconds=maxwaitpid)
 
                 while now < until:
-                    status = PID.getclientsmsstatus(address, data['smsid'])
+                    status, status_code = PID.getclientsmsstatus(address, data['smsid'])
 
-                    if status == 'SUCCESS':
+                    if status == 'SUCCESS' or status == "ERROR":
                         cherrypy.response.status = 200
+                        cherrypy.response.body = status_code
                         PID.removeclientsms(address, data['smsid'])
-                        return
-
-                    if status == 'ERROR':
-                        cherrypy.response.status = 500
-                        PID.removeclientsms(address, data['smsid'])
-                        return
+                        return str(status_code)
 
                     # wait for next run
                     time.sleep(0.50)
@@ -180,7 +177,8 @@ class WebSocketHandler(WebSocket):
             # set sms status to globals for handling in /sendsms
             PID.setclientsmsstatus(self.peer_address,
                                    data['smsid'],
-                                   data['status'])
+                                   data['status'],
+                                   data['status_code'])
 
         if data['action'] == "heartbeat":
             # forward heartbeat to WIS
@@ -216,7 +214,11 @@ class PisServer(object):
         pisglobals.pisid = cfg.getvalue('pisid', 'pis-dummy', 'pis')
         ipaddress = cfg.getvalue('ipaddress', '127.0.0.1', 'pis')
         pisport = cfg.getvalue('port', '7788', 'pis')
-        pisglobals.pisurl = ("http://" + ipaddress + ":" + pisport)
+        if ipaddress == "0.0.0.0":
+            pisglobals.pisurl = ("http://" + socket.gethostname() + ":" + pisport)
+        else:
+            pisglobals.pisurl = ("http://" + ipaddress + ":" + pisport)
+
         wisurlcfg = cfg.getvalue('wisurllist',
                                  '[{"url": "http://127.0.0.1:7777"}]',
                                  'pis')

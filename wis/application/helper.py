@@ -25,6 +25,7 @@ from common import error
 from common import smsgwglobals
 from application import apperror
 from application import wisglobals
+import uuid
 import urllib.request
 import json
 import re
@@ -34,7 +35,11 @@ import socket
 class Helper(object):
 
     @staticmethod
-    def processsms(sms):
+    def processsms(sms, reprocess_sms = None):
+        # if reprocess_sms = True - recreate smsid - as we need to create new SMS
+        if reprocess_sms:
+            sms.smsdict["smsid"] = str(uuid.uuid1())
+
         sms.smsdict["smsintime"] = datetime.utcnow()
         possibleroutes = []
         try:
@@ -64,6 +69,10 @@ class Helper(object):
 
             # if there are obsolete routes remove them from possible
             possibleroutes[:] = [d for d in possibleroutes if d['obsolete'] < 13]
+
+            # if there routes with sms_count == sms_limit remove them from possible
+            possibleroutes[:] = [d for d in possibleroutes if d['sms_count'] < d['sms_limit']]
+
             smsgwglobals.wislogger.debug("HELPER: receiverouting %s", str(possibleroutes))
 
             # if we still have no possible routes raise error
@@ -79,9 +88,10 @@ class Helper(object):
             # if only one possibility just set it and save it
             if len(possibleroutes) == 1:
                 sms.smsdict["modemid"] = possibleroutes[0]["modemid"]
+                sms.smsdict["imsi"] = possibleroutes[0]["imsi"]
                 sms.smsdict["status"] = 0
                 sms.smsdict["statustime"] = datetime.utcnow()
-                wisglobals.rdb.raise_lbcount(sms.smsdict["modemid"])
+                wisglobals.rdb.raise_sms_count(sms.smsdict["modemid"])
                 sms.writetodb()
                 smsgwglobals.wislogger.debug("HELPER: receiverouting One route found!")
                 smsgwglobals.wislogger.debug("HELPER: receiverouting %s ", possibleroutes)
@@ -90,16 +100,17 @@ class Helper(object):
                 lbcount = 1000000
                 selectedroute = None
                 for route in possibleroutes:
-                    if route["lbcount"] / route["lbfactor"] <= lbcount:
-                        lbcount = route["lbcount"] / route["lbfactor"]
+                    if route["sms_count"] / route["lbfactor"] <= lbcount:
+                        lbcount = route["sms_count"] / route["lbfactor"]
                         selectedroute = route
 
                 smsgwglobals.wislogger.debug("HELPER: One route selected!")
                 smsgwglobals.wislogger.debug("HELPER: receiverouting %s ", possibleroutes)
                 sms.smsdict["modemid"] = selectedroute["modemid"]
+                sms.smsdict["imsi"] = selectedroute["imsi"]
                 sms.smsdict["status"] = 0
                 sms.smsdict["statustime"] = datetime.utcnow()
-                wisglobals.rdb.raise_lbcount(sms.smsdict["modemid"])
+                wisglobals.rdb.raise_sms_count(sms.smsdict["modemid"])
                 sms.writetodb()
 
         except error.DatabaseError as e:
@@ -128,10 +139,10 @@ class Helper(object):
                 if "url" not in p:
                     continue
                 smsgwglobals.wislogger.debug(p["url"] +
-                                             "/smsgateway")
+                                             "/")
                 request = \
                     urllib.request.Request(p["url"] +
-                                           "/smsgateway")
+                                           "/")
                 f = urllib.request.urlopen(request, timeout=5)
                 smsgwglobals.wislogger.debug(f.getcode())
 
@@ -152,10 +163,10 @@ class Helper(object):
         for route in routes:
             try:
                 smsgwglobals.wislogger.debug(route["wisurl"] +
-                                             "/smsgateway")
+                                             "/")
                 request = \
                     urllib.request.Request(route["wisurl"] +
-                                           "/smsgateway")
+                                           "/")
                 f = urllib.request.urlopen(request, timeout=5)
                 smsgwglobals.wislogger.debug(f.getcode())
 
@@ -216,7 +227,7 @@ class Helper(object):
                 request = \
                     urllib.request.Request(
                         route["wisurl"] +
-                        "/smsgateway/api/receiverouting")
+                        "/api/receiverouting")
 
                 request.add_header("Content-Type",
                                    "application/json;charset=utf-8")
@@ -244,7 +255,7 @@ class Helper(object):
                 request = \
                     urllib.request.Request(
                         p["url"] +
-                        "/smsgateway/api/receiverouting")
+                        "/api/receiverouting")
 
                 request.add_header("Content-Type",
                                    "application/json;charset=utf-8")
@@ -274,7 +285,7 @@ class Helper(object):
                 data = GlobalHelper.encodeAES('{"get": "peers"}')
                 request = \
                     urllib.request.Request(url +
-                                           "/smsgateway/api/requestrouting")
+                                           "/api/requestrouting")
                 request.add_header("Content-Type",
                                    "application/json;charset=utf-8")
                 f = urllib.request.urlopen(request, data, timeout=5)

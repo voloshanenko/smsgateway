@@ -19,6 +19,7 @@ sys.path.insert(0, "..")
 from os import path
 from datetime import datetime
 from datetime import timedelta
+import pytz
 import sqlite3
 import uuid
 
@@ -103,6 +104,7 @@ class Database(object):
         query = ("CREATE TABLE IF NOT EXISTS sms (" +
                  "smsid TEXT PRIMARY KEY, " +
                  "modemid TEXT, " +
+                 "imsi TEXT, " +
                  "targetnr TEXT, " +
                  "content TEXT, " +
                  "priority INTEGER, " +
@@ -185,12 +187,13 @@ class Database(object):
             raise error.DatabaseError("Unable to INSERT user! ", e)
 
     # Insert sms
-    def insert_sms(self, modemid='00431234', targetnr='+431234',
+    def insert_sms(self, modemid='00431234', imsi='1234567890', targetnr='+431234',
                    content='♠♣♥♦Test', priority=1, appid='demo',
                    sourceip='127.0.0.1', xforwardedfor='172.0.0.1',
                    smsintime=None, status=0, statustime=None, smsid=None):
         """Insert a fresh SMS out of WIS
         Attributes: modemid ... string-countryexitcode+number (0043664123..)
+        imsi ... string-no SIM card IMSI
         targetnr ... string-no country exit code (+436761234..)
         content ... string-message
         prioirty ... int-0 low, 1 middle, 2 high
@@ -214,14 +217,15 @@ class Database(object):
                 statustime = now
 
         query = ("INSERT INTO sms " +
-                 "(smsid, modemid, targetnr, content, priority, " +
+                 "(smsid, modemid, imsi, targetnr, content, priority, " +
                  "appid, sourceip, xforwardedfor, smsintime, " +
                  "status, statustime) " +
-                 "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
+                 "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
 
         try:
             smsgwglobals.dblogger.debug("SQLite: Insert SMS" +
                                         " :smsid: " + smsid +
+                                        " :imsi: " + imsi +
                                         " :modemid: " + modemid +
                                         " :targetnr: " + targetnr +
                                         " :content: " + content +
@@ -233,7 +237,7 @@ class Database(object):
                                         " :status: " + str(status) +
                                         " :statustime: " + str(statustime)
                                         )
-            self.__con.execute(query, (smsid, modemid, targetnr,
+            self.__con.execute(query, (smsid, modemid, imsi, targetnr,
                                        content, priority,
                                        appid, sourceip, xforwardedfor,
                                        smsintime, status, statustime))
@@ -259,6 +263,7 @@ class Database(object):
             smsgwglobals.dblogger.debug("SQLite: Update SMS: " + str(sms))
             query = ("UPDATE sms SET " +
                      "modemid = ?, " +
+                     "imsi = ?, " +
                      "targetnr = ?, " +
                      "content = ?, " +
                      "priority = ?, " +
@@ -271,7 +276,7 @@ class Database(object):
                      "WHERE smsid = ?"
                      )
             try:
-                self.__con.execute(query, (sms['modemid'], sms['targetnr'],
+                self.__con.execute(query, (sms['modemid'], sms['imsi'], sms['targetnr'],
                                            sms['content'], sms['priority'],
                                            sms['appid'], sms['sourceip'],
                                            sms['xforwardedfor'],
@@ -453,6 +458,7 @@ class Database(object):
         query = ("SELECT " +
                  "smsid, " +
                  "modemid, " +
+                 "imsi, " +
                  "targetnr, " +
                  "content, " +
                  "priority, " +
@@ -477,15 +483,17 @@ class Database(object):
         return sms
 
     # Read sms
-    def read_sms(self, status=None, modemid=None):
+    def read_sms(self, status=None, modemid=None, smsid=None):
 
         smsgwglobals.dblogger.debug("SQLite: Read SMS" +
                                     " :modemid: " + str(modemid) +
-                                    " :status: " + str(status)
+                                    " :status: " + str(status) +
+                                    " :smsid: " + str(smsid)
                                     )
         query = ("SELECT " +
                  "smsid, " +
                  "modemid, " +
+                 "imsi, " +
                  "targetnr, " +
                  "content, " +
                  "priority, " +
@@ -499,7 +507,10 @@ class Database(object):
 
         orderby = " ORDER BY priority DESC, smsintime ASC;"
         try:
-            if modemid is None:
+            if smsid is not None:
+                query = query + "WHERE smsid = ?" + orderby
+                result = self.__cur.execute(query, [smsid])
+            elif modemid is None:
                 if status is None:
                     query = query + orderby
                     result = self.__cur.execute(query)
@@ -535,6 +546,7 @@ class Database(object):
         query = ("SELECT " +
                  "smsid, " +
                  "modemid, " +
+                 "imsi, " +
                  "targetnr, " +
                  "content, " +
                  "priority, " +
@@ -567,6 +579,37 @@ class Database(object):
             smsgwglobals.dblogger.debug("SQLite: " + str(len(sms)) +
                                         " SMS for stats selected.")
             return sms
+
+    # Read number of sms sent for last 24h per SIM IMSI in UKRAINE timezone
+    def read_sms_count_by_imsi(self, imsi):
+
+        utc_timezone = pytz.timezone("UTC")
+        ua_timezone = pytz.timezone("Europe/Kiev")
+
+        today = datetime.utcnow().astimezone(ua_timezone).date()
+        start = datetime(today.year, today.month, today.day, tzinfo=ua_timezone).astimezone(utc_timezone)
+        end = start + timedelta(1)
+
+        smsgwglobals.dblogger.debug("SQLite: Read SMS stats" +
+                                    " with :imsi: " + imsi +
+                                    " for last 24 hours"
+                                    )
+        query = ("SELECT count(*) " +
+                 "FROM sms " +
+                 "WHERE imsi = ? " +
+                 "AND statustime BETWEEN ? AND ?"
+                 )
+        try:
+            result = self.__cur.execute(query, [ imsi, start, end])
+        except Exception as e:
+            smsgwglobals.dblogger.critical("SQLite: " + query +
+                                           " failed! [EXCEPTION]:%s", e)
+            raise error.DatabaseError("Unable to SELECT sms_count FROM sms! ", e)
+        else:
+            sms_count = result.fetchone()[0]
+            smsgwglobals.dblogger.debug("SQLite: Sent " + str(sms_count) +
+                                        " SMS for IMSI " + imsi + ".")
+            return sms_count
 
 
 def main():

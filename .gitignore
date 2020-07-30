@@ -2,6 +2,11 @@ __pycache__/
 *.py[cod]
 */*.swp
 *.swp
-logs/*.log
+.DS_Store
+logs/*log*
+conf/modem*
+conf/smsgw_*
+db
 *.sqlite
+deploy/env.prod
 .ropeproject

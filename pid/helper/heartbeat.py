@@ -74,8 +74,8 @@ class Heartbeat(threading.Thread):
         while not self.e.isSet():
             # processing WIS heartbeat
             self.process()
-            # sleep for 30 seconds
-            time.sleep(30)
+            # sleep for 10 seconds
+            time.sleep(10)
 
         smsgwglobals.pidlogger.debug("HEARTBEAT: STOPPED! - " +
                                      str(self.modemlist) + "-" +

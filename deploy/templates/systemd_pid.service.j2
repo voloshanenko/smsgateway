@@ -1,0 +1,10 @@
+[Unit]
+Description=smsgateway socat #{{ loop_idx + 1 }}
+
+[Service]
+User=root
+ExecStart=/usr/bin/socat tcp-l:{{ initial_pid_remote_port + loop_idx + 1 }},reuseaddr,fork file:/dev/ttyACM{{loop_idx}},nonblock,waitlock=/var/run/pseudo_tty{{ loop_idx }}.lock 
+Restart=always
+
+[Install]
+WantedBy=multi-user.target

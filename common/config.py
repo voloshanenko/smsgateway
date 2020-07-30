@@ -16,6 +16,7 @@
 import configparser
 import ast
 import sys
+import os
 sys.path.insert(0, "..")
 
 from common import error
@@ -84,4 +85,4 @@ class SmsConfig(object):
         sys.stderr.write(errortext)
         # System errorcode 1 ... is defined as config error
         # System errorcode 2 ... is defined as modem error
-        sys.exit(errorcode)
+        os._exit(errorcode)

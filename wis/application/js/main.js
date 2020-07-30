@@ -125,6 +125,146 @@ function getStatus() {
     );
 }
 
+function sendSms() {
+    if (jQuery("#sessiontimeout").length) {
+        location.reload();
+    }
+    appid = $( "#appid" ).val()
+    mobiles = $( "#mobiles" ).val()
+    content = $( "#content" ).val()
+
+    if (mobiles == ""){
+        warning_message = "You need to type at least 1 mobile number to send sms TO!";
+        showToastr("warning", warning_message);
+    }
+
+    if (content == ""){
+        warning_message = "You need to type at least 1 symbol of sms to send!";
+        showToastr("warning", warning_message);
+        return;
+    }
+
+    // Split each number per line, remove ; and remove empty elements if any
+    mobiles_array_final = mobiles.split("\n").map(n => n.replace(";", "").trim()).filter(n => n);
+
+    mobiles_array_final.forEach(function (mobnum) {
+        sendsms_towis(appid, mobnum, content)
+    });
+
+    alert("All SMS sent to the backend. Please check SMS status in few mins!")
+}
+
+function sendsms_towis(appid, mobile, content){
+    data = {
+        appid: appid,
+        mobile: mobile,
+        content: content
+    }
+    json_data = JSON.stringify(data)
+
+    $.postJSON('/sendsms', json_data).done(function(data) {
+        success_message = "SMS added to the queue. ID: " + data["smsid"]
+        showToastr("success", success_message);
+    }).fail(function(data){
+        if (data.status == 404){
+            error_message = "Route to send SMS not availbale! Check modems and limits!";
+            showToastr("error", error_message);
+        }
+    });
+}
+
+jQuery["postJSON"] = function( url, data, callback ) {
+    // shift arguments if data argument was omitted
+    if ( jQuery.isFunction( data ) ) {
+        callback = data;
+        data = undefined;
+    }
+
+    return jQuery.ajax({
+        url: url,
+        type: "POST",
+        contentType:"application/json; charset=utf-8",
+        dataType: "json",
+        data: data,
+        success: callback
+    });
+};
+
+function showToastr(toastr_type, toastr_message){
+    if (toastr_type=="call_success"){
+        toastr.options = {
+            "debug": false,
+            "newestOnTop": true,
+            "progressBar": true,
+            "positionClass": "toast-top-right",
+            "preventDuplicates": false,
+            "onclick": null,
+            "showDuration": "300",
+            "hideDuration": "1000",
+            "timeOut": "10000",
+            "extendedTimeOut": "1000",
+            "showEasing": "swing",
+            "hideEasing": "linear",
+            "showMethod": "fadeIn",
+            "hideMethod": "fadeOut"
+        }
+    } else if (toastr_type=="success"){
+        toastr.options = {
+            "debug": false,
+            "newestOnTop": true,
+            "progressBar": true,
+            "positionClass": "toast-top-right",
+            "preventDuplicates": false,
+            "onclick": null,
+            "showDuration": "300",
+            "hideDuration": "1000",
+            "timeOut": "1000",
+            "extendedTimeOut": "1000",
+            "showEasing": "swing",
+            "hideEasing": "linear",
+            "showMethod": "fadeIn",
+            "hideMethod": "fadeOut"
+        }
+    }else if(toastr_type=="error"){
+        toastr.options = {
+            "closeButton": true,
+            "debug": false,
+            "newestOnTop": true,
+            "positionClass": "toast-top-right",
+            "preventDuplicates": true,
+            "onclick": null,
+            "showDuration": "300",
+            "hideDuration": "1000",
+            "timeOut": "0",
+            "extendedTimeOut": "0",
+            "showEasing": "swing",
+            "hideEasing": "linear",
+            "showMethod": "fadeIn",
+            "hideMethod": "fadeOut"
+        }
+    }else if (toastr_type=="warning") {
+        toastr.options = {
+            "debug": false,
+            "newestOnTop": true,
+            "progressBar": true,
+            "positionClass": "toast-top-right",
+            "preventDuplicates": true,
+            "onclick": null,
+            "showDuration": "300",
+            "hideDuration": "1000",
+            "timeOut": "5000",
+            "extendedTimeOut": "1000",
+            "showEasing": "swing",
+            "hideEasing": "linear",
+            "showMethod": "fadeIn",
+            "hideMethod": "fadeOut"
+        }
+    }
+    if (toastr_type == "call_success"){
+        toastr_type = "success"
+    }
+    toastr[toastr_type](toastr_message)
+};
 
 function getRouting() {
     jQuery('div.routing').load('ajax/getrouting', function() {

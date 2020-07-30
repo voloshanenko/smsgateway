@@ -17,6 +17,11 @@ smsgatewayabspath = None
 
 watchdogThread = None
 watchdogThreadNotify = None
+# For route-based watchdogs
+watchdogRouteThread = {}
+watchdogRouteThreadNotify = {}
+watchdogRouteThreadQueue = {}
+
 routerThread = None
 rdb = None
 cleanupseconds = None

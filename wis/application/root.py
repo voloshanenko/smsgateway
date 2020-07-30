@@ -55,6 +55,30 @@ class ViewMain(Htmlpage):
         str_list.append('<div class="routing">')
         str_list.append('</div>')
         str_list.append('<hr>')
+        str_list.append('''
+        <form id="sendsms">
+        <table>
+                    <tbody>
+                    <tr>
+                        <td>Marketing company ID:</td>
+                        <td><input type="text" id="appid" name="appid"></td>
+                    </tr>
+                    <tr>
+                        <td>Send to:</td>
+                        <td><textarea id="mobiles" name="mobiles" rows="10" cols="50"></textarea></td>
+                    </tr>
+                    <tr>
+                        <td>SMS:</td>
+                        <td><textarea id="content" name="content" rows="10" cols="50"></textarea></>
+                    </tr>
+                    <tr>
+                        <td><button class="btn" type="button" onclick="sendSms()">Send SMS</button></td>
+                    </tr>
+                    </tbody>
+        </table>
+        </form>
+        <hr>
+        ''')
         str_list.append('<form id="getsms" action="ajax/getsms">\n')
         str_list.append('Date:<input type="text" name="date">\n')
         str_list.append('<button class="btn" type="button"' +
@@ -90,13 +114,13 @@ class Ajax():
                                                      wisglobals.wisipaddress +
                                                      ':' +
                                                      wisglobals.wisport +
-                                                     "/smsgateway/api/getsms")
+                                                     "/api/getsms")
                 else:
                     request = urllib.request.Request('http://' +
                                                      wisglobals.wisipaddress +
                                                      ':' +
                                                      wisglobals.wisport +
-                                                     "/smsgateway/api/getsms")
+                                                     "/api/getsms")
                 request.add_header("Content-Type",
                                    "application/json;charset=utf-8")
                 f = urllib.request.urlopen(request, data, timeout=5)
@@ -124,7 +148,7 @@ class Ajax():
                             data = GlobalHelper.encodeAES('{"get": "sms", "date": "' + str(date) + '"}')
 
                         request = urllib.request.Request(entry["wisurl"] +
-                                                         "/smsgateway/api/getsms")
+                                                         "/api/getsms")
                         request.add_header("Content-Type",
                                            "application/json;charset=utf-8")
                         f = urllib.request.urlopen(request, data, timeout=5)
@@ -219,7 +243,7 @@ class Ajax():
             for d in r:
                 txt = None
                 if "http" in str(d):
-                    txt = '<a href="' + str(d) + '/smsgateway" target="_blank">' + str(d) + '</a>'
+                    txt = '<a href="' + str(d) + '" target="_blank">' + str(d) + '</a>'
                 else:
                     txt = str(d)
                 str_list.append('<td>' + txt + '</td>\n')

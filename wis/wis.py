@@ -15,11 +15,12 @@
 
 import cherrypy
 import json
-from os import path
+import os
 import sys
 sys.path.insert(0, "..")
 import re
 import uuid
+from queue import Queue, Empty
 
 from common import error
 from common.config import SmsConfig
@@ -37,11 +38,11 @@ from application import wisglobals
 from application import apperror
 from application import routingdb
 
-from lxml import etree
 from ldap3 import Server, Connection, ALL
 
 import ssl
 
+SMS_QUEUE = None
 
 # disable ssl check for unverified requests
 # https://www.python.org/dev/peps/pep-0476/
@@ -53,24 +54,6 @@ except AttributeError:
 else:
     # Handle target environment that doesn't support HTTPS verification
     ssl._create_default_https_context = _create_unverified_https_context
-
-
-class XMLResponse(object):
-    def successxml(self, number):
-        root = etree.Element('SmsSendReturn')
-        child = etree.Element('returnCode')
-        child.text = "SUC" + number
-        root.append(child)
-        return etree.tostring(root, pretty_print=True, xml_declaration=True,
-                              encoding='UTF-8', standalone="yes")
-
-    def errorxml(self, number):
-        root = etree.Element('SmsSendReturn')
-        child = etree.Element('returnCode')
-        child.text = "ERR" + number
-        root.append(child)
-        return etree.tostring(root, pretty_print=True, xml_declaration=True,
-                              encoding='UTF-8', standalone="yes")
 
 
 class Root(object):
@@ -93,12 +76,12 @@ class Root(object):
 
         if wisglobals.watchdogThread is None:
             smsgwglobals.wislogger.debug("Watchdog died! Restarting it!")
-            wd = Watchdog(1, "Watchdog")
+            wd = Watchdog(1, "Watchdog", SMS_QUEUE)
             wd.daemon = True
             wd.start()
         elif not wisglobals.watchdogThread.isAlive():
             smsgwglobals.wislogger.debug("Watchdog died! Restarting it!")
-            wd = Watchdog(1, "Watchdog")
+            wd = Watchdog(1, "Watchdog", SMS_QUEUE)
             wd.daemon = True
             wd.start()
         else:
@@ -115,7 +98,7 @@ class Root(object):
         if 'logon' not in cherrypy.session:
             return root.Login().view()
         elif cherrypy.session['logon'] is True:
-            raise cherrypy.HTTPRedirect("/smsgateway/main")
+            raise cherrypy.HTTPRedirect("/main")
 
     @cherrypy.expose
     @cherrypy.tools.allow(methods=['POST'])
@@ -126,43 +109,43 @@ class Root(object):
         # check if password is empty
         if not password:
             smsgwglobals.wislogger.debug("FRONT: No password on login")
-            raise cherrypy.HTTPRedirect("/smsgateway")
+            raise cherrypy.HTTPRedirect("/")
 
         # check if username is valid
         if not username:
             smsgwglobals.wislogger.debug("FRONT: No username on login")
-            raise cherrypy.HTTPRedirect("/smsgateway")
+            raise cherrypy.HTTPRedirect("/")
 
         if len(username) > wisglobals.validusernamelength:
             smsgwglobals.wislogger.debug("FRONT: Username to long on login")
-            raise cherrypy.HTTPRedirect("/smsgateway")
+            raise cherrypy.HTTPRedirect("/")
 
         if (re.compile(wisglobals.validusernameregex).findall(username)):
             smsgwglobals.wislogger.debug("FRONT: Username is not valid login")
-            raise cherrypy.HTTPRedirect("/smsgateway")
+            raise cherrypy.HTTPRedirect("/")
 
         if 'root' in username:
             smsgwglobals.wislogger.debug("FRONT: ROOT Login " + username)
             try:
                 if Helper.checkpassword(username, password) is True:
                     cherrypy.session['logon'] = True
-                    raise cherrypy.HTTPRedirect("/smsgateway/main")
+                    raise cherrypy.HTTPRedirect("/main")
                 else:
-                    raise cherrypy.HTTPRedirect("/smsgateway")
+                    raise cherrypy.HTTPRedirect("/")
             except error.UserNotFoundError:
-                raise cherrypy.HTTPRedirect("/smsgateway")
+                raise cherrypy.HTTPRedirect("/")
         else:
             try:
                 smsgwglobals.wislogger.debug("FRONT: Ldap Login " + username)
                 if wisglobals.ldapenabled is None or 'true' not in wisglobals.ldapenabled.lower():
                     smsgwglobals.wislogger.debug("FRONT: Ldap Login disabled " + username)
-                    raise cherrypy.HTTPRedirect("/smsgateway")
+                    raise cherrypy.HTTPRedirect("/")
 
                 smsgwglobals.wislogger.debug("FRONT: Ldap Login " + username)
                 smsgwglobals.wislogger.debug("FRONT: Ldap Users " + str(wisglobals.ldapusers))
                 if username not in wisglobals.ldapusers:
                     smsgwglobals.wislogger.debug("FRONT: Ldap username not in ldapusers")
-                    raise cherrypy.HTTPRedirect("/smsgateway")
+                    raise cherrypy.HTTPRedirect("/")
 
                 smsgwglobals.wislogger.debug("FRONT: Ldap Server " + wisglobals.ldapserver)
                 s = Server(wisglobals.ldapserver, get_info=ALL)
@@ -172,11 +155,11 @@ class Root(object):
                 if c.bind():
                     smsgwglobals.wislogger.debug("FRONT: Ldap login successful " + username)
                     cherrypy.session['logon'] = True
-                    raise cherrypy.HTTPRedirect("/smsgateway/main")
+                    raise cherrypy.HTTPRedirect("//main")
                 else:
-                    raise cherrypy.HTTPRedirect("/smsgateway")
+                    raise cherrypy.HTTPRedirect("/")
             except error.UserNotFoundError:
-                raise cherrypy.HTTPRedirect("/smsgateway")
+                raise cherrypy.HTTPRedirect("/")
 
     @cherrypy.expose
     def main(self, **params):
@@ -189,7 +172,7 @@ class Root(object):
     @cherrypy.tools.allow(methods=['POST', 'GET'])
     def ajax(self, arg, **params):
         if 'logon' not in cherrypy.session:
-            # raise cherrypy.HTTPRedirect("/smsgateway")
+            # raise cherrypy.HTTPRedirect("/")
             return '<div id="sessiontimeout"></div>'
 
         smsgwglobals.wislogger.debug("AJAX: request with %s and %s ", str(arg), str(params))
@@ -307,7 +290,14 @@ class Root(object):
 
                 elif data["action"] == "unregister":
                     smsgwglobals.wislogger.debug("managemodem unregister")
-                    wisglobals.rdb.change_obsolete(data["routingid"], 14)
+                    routingid = data["routingid"]
+                    wisglobals.rdb.change_obsolete(routingid, 14)
+                    if routingid in wisglobals.watchdogRouteThread:
+                        wisglobals.watchdogRouteThread[routingid].terminate()
+                        wisglobals.watchdogRouteThread.pop(routingid)
+                        wisglobals.watchdogRouteThreadNotify.pop(routingid)
+                        wisglobals.watchdogRouteThreadQueue.pop(routingid)
+
                     Helper.receiverouting()
                 else:
                     return False
@@ -319,7 +309,7 @@ class Root(object):
                 smsgwglobals.wislogger.debug(data["sms"])
                 try:
                     sms = Smstransfer(**data["sms"])
-                    sms.smsdict["status"] = 1
+                    sms.smsdict["status"] = -1
                     sms.writetodb()
                     self.triggerwatchdog()
                 except error.DatabaseError:
@@ -368,50 +358,63 @@ class Root(object):
                 smsgwglobals.wislogger.debug(e.message)
 
     @cherrypy.expose
-    @cherrypy.tools.allow(methods=['GET', 'POST'])
+    @cherrypy.tools.allow(methods=['POST'])
+    @cherrypy.tools.accept(media='application/json')
+    @cherrypy.tools.json_out()
+    @cherrypy.tools.json_in()
     def sendsms(self, **params):
+        json_data = cherrypy.request.json
 
         # all parameters to lower case
-        cherrypy.request.params = dict([(x[0].lower(), x[1]) for x in cherrypy.request.params.items()])
+        json_data = dict([(x[0].lower(), x[1]) for x in json_data.items()])
+
+        # check if parameters are given
+        resp = {}
+        if not json_data.get("content"):
+            cherrypy.response.status = 422
+            resp["message"] = ":content attribute not set"
+            self.triggerwatchdog()
+            return resp
+        if not json_data.get("mobile"):
+            cherrypy.response.status = 422
+            resp["message"] = ":mobile attribute not set"
+            self.triggerwatchdog()
+            return resp
 
         priority = 1
         if 'priority' in cherrypy.request.params:
-            priority = int(cherrypy.request.params.get('priority'))
+            priority = int(json_data.get('priority'))
 
         # this is used for parameter extraction
         # Create sms data object and make sure that it has a smsid
-        sms = Smstransfer(content=cherrypy.request.params.get('content'),
-                          targetnr=cherrypy.request.params.get('mobile'),
+        #sleep(0.1)
+        sms_uuid = str(uuid.uuid1())
+        sms = Smstransfer(content=json_data.get('content'),
+                          targetnr=json_data.get('mobile'),
                           priority=priority,
-                          appid=cherrypy.request.params.get('appid'),
+                          appid=json_data.get('appid'),
                           sourceip=cherrypy.request.headers.get('Remote-Addr'),
-                          xforwardedfor=cherrypy.request.headers.get(
-                              'X-Forwarded-For'),
-                          smsid=str(uuid.uuid1()))
+                          xforwardedfor=cherrypy.request.headers.get('X-Forwarded-For'),
+                          smsid=sms_uuid)
 
-        # check if parameters are given
-        resp = XMLResponse()
-        if not sms.smsdict["content"]:
-            self.triggerwatchdog()
-            return resp.errorxml("0001")
-        if not sms.smsdict["targetnr"]:
-            self.triggerwatchdog()
-            return resp.errorxml("0001")
-        if not sms.smsdict["priority"]:
-            self.triggerwatchdog()
-            return resp.errorxml("0001")
-
-        smsgwglobals.wislogger.debug("WIS: sendsms iterface " + str(sms.getjson()))
+        smsgwglobals.wislogger.debug("WIS: sendsms interface " + str(sms.getjson()))
 
         # process sms to insert it into database
         try:
             Helper.processsms(sms)
+            smsid = sms.smstransfer["sms"]["smsid"]
+            SMS_QUEUE.put(smsid)
         except apperror.NoRoutesFoundError:
+            cherrypy.response.status = 404
+            resp["message"] = ":route for send sms not found"
             self.triggerwatchdog()
-            return resp.errorxml("0001")
+            return resp
 
+        cherrypy.response.status = 200
+        resp["message"] = ":sms added to the queue successfully"
+        resp["smsid"] = sms_uuid
         self.triggerwatchdog()
-        return resp.successxml("0001")
+        return resp
 
 
 class Wisserver(object):
@@ -421,7 +424,7 @@ class Wisserver(object):
         # Create default root user
         db = Database()
 
-        abspath = path.abspath(path.join(path.dirname(__file__), path.pardir))
+        abspath = os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir))
 
         # store the abspath in globals for easier handling
         wisglobals.smsgatewayabspath = abspath
@@ -453,7 +456,11 @@ class Wisserver(object):
         wisglobals.ldapusers = [item.lower() for item in wisglobals.ldapusers]
         smsgwglobals.wislogger.debug("WIS:" + str(wisglobals.ldapusers))
 
-        password = cfg.getvalue('password', '20778ba41791cdc8ac54b4f1dab8cf7602a81f256cbeb9e782263e8bb00e01794d47651351e5873f9ac82868ede75aa6719160e624f02bba4df1f94324025058', 'wis')
+        wis_env_root_password_hash = os.getenv("ROOT_PASSWORD_HASH")
+
+        password_from_config = cfg.getvalue('password', '20778ba41791cdc8ac54b4f1dab8cf7602a81f256cbeb9e782263e8bb00e01794d47651351e5873f9ac82868ede75aa6719160e624f02bba4df1f94324025058', 'wis')
+        password = wis_env_root_password_hash if wis_env_root_password_hash else password_from_config
+
         salt = cfg.getvalue('salt', 'changeme', 'wis')
 
         # write the default user on startup
@@ -486,8 +493,8 @@ class Wisserver(object):
                                 wisglobals.wisipaddress})
         cherrypy.config.update({'server.socket_port':
                                 int(wisglobals.wisport)})
-        cherrypy.tree.mount(StatsLogstash(), '/smsgateway/api/stats/logstash', {'/': {'request.dispatch': cherrypy.dispatch.MethodDispatcher()}})
-        cherrypy.quickstart(Root(), '/smsgateway',
+        cherrypy.tree.mount(StatsLogstash(), '/api/stats/logstash', {'/': {'request.dispatch': cherrypy.dispatch.MethodDispatcher()}})
+        cherrypy.quickstart(Root(), '/',
                             'wis-web.conf')
 
 
@@ -538,13 +545,17 @@ def main(argv):
     wisglobals.rdb.create_table_routing()
     wisglobals.rdb.read_routing()
 
+    # Create message queue
+    global SMS_QUEUE
+    SMS_QUEUE = Queue()
+
     # Start the router
     rt = Router(2, "Router")
     rt.daemon = True
     rt.start()
 
     # Start the watchdog
-    wd = Watchdog(1, "Watchdog")
+    wd = Watchdog(1, "Watchdog", SMS_QUEUE)
     wd.daemon = True
     wd.start()
 

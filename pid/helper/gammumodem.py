@@ -15,9 +15,11 @@
 
 import time
 import gammu
+import re
 from common import smsgwglobals
 import pidglobals
 
+USSD_REPLY = None
 
 class USBModem(object):
     __status = None
@@ -62,6 +64,47 @@ class USBModem(object):
 
     def get_status(self):
         return self.__status
+
+    def get_sim_imsi(self):
+        return self.__statemachine.GetSIMIMSI()
+
+    def ussd_callback(self, state_machine, callback_type, data):
+        global USSD_REPLY
+        if callback_type != 'USSD':
+            print('Unexpected event type: {0}'.format(callback_type))
+            return
+
+        USSD_REPLY = data
+
+    def process_ussd(self, ussd_code):
+        self.__statemachine.SetIncomingCallback(self.ussd_callback)
+        try:
+            self.__statemachine.SetIncomingUSSD()
+        except gammu.ERR_NOTSUPPORTED:
+            smsgwglobals.pidlogger.warning("Incoming USSD notification is not supported")
+            return None
+
+        global USSD_REPLY
+
+        USSD_REPLY = None
+        smsgwglobals.pidlogger.info("Calling USSD code: " + ussd_code)
+        self.__statemachine.DialService(ussd_code)
+        loops = 0
+        while not USSD_REPLY and loops < 20:
+            self.__statemachine.ReadDevice()
+            loops += 1
+
+        smsgwglobals.pidlogger.info("Received USSD answer " + str(USSD_REPLY) + " for USSD code: " + ussd_code)
+        return USSD_REPLY
+
+    def parse_ussd(self, ussd_reply, ussd_regex):
+        ussd_status = None
+        if ussd_reply is not None and "Text" in ussd_reply:
+            ussd_matches = re.search(ussd_regex, ussd_reply["Text"])
+            if ussd_matches is not None:
+                ussd_status = ussd_matches.group(1)
+
+        return ussd_status
 
     def set_pin(self, pin):
         # Check if PIN is needed
@@ -144,11 +187,16 @@ class USBModem(object):
             try:
                 msgref = self.__statemachine.SendSMS(message)
                 status = True
-            except:
-                msgref = 'Error'
+                status_code = 1
+            except gammu.GSMError as e:
+                status_code = e.args[0]["Code"]
+                msgref = str(e)
+                status = False
+            except Exception as e:
+                msgref = str(e)
                 status = False
 
         smsgwglobals.pidlogger.debug("MODEM: send_SMS to " + str(targetnr) +
                                      " has status: " + str(status) + " and " +
                                      "msgref (" + str(msgref) + ")")
-        return status
+        return status, status_code

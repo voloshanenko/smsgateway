@@ -23,12 +23,14 @@ import re
 
 
 class Smstransfer(object):
-    smstransfer = {}
-    smsdict = {}
+
 
     # def __init__(self, content, targetnr, priority,
     #             appid, sourceip, xforwardedfor):
     def __init__(self, **kwargs):
+        self.smstransfer = {}
+        self.smsdict = {}
+
         self.smsdict["content"] = kwargs["content"]
         self.smsdict["priority"] = kwargs["priority"]
         self.smsdict["appid"] = kwargs["appid"]
@@ -45,6 +47,11 @@ class Smstransfer(object):
             self.smsdict["modemid"] = kwargs["modemid"]
         else:
             self.smsdict["modemid"] = ""
+
+        if "imsi" in kwargs:
+            self.smsdict["imsi"] = kwargs["imsi"]
+        else:
+            self.smsdict["imsi"] = ""
 
         if "smsintime" in kwargs:
             self.smsdict["smsintime"] = kwargs["smsintime"]
@@ -97,6 +104,7 @@ class Smstransfer(object):
         try:
             db = Database()
             db.insert_sms(self.smsdict["modemid"],
+                          self.smsdict["imsi"],
                           self.smsdict["targetnr"],
                           self.smsdict["content"],
                           self.smsdict["priority"],
