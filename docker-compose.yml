@@ -10,6 +10,10 @@ services:
     command: ["python", "wis.py"]
     restart: unless-stopped
     environment:
+    - VIRTUAL_HOST=${VIRTUAL_HOST}
+    - VIRTUAL_PORT=${VIRTUAL_PORT}
+    - LETSENCRYPT_HOST=${LETSENCRYPT_HOST}
+    - LETSENCRYPT_EMAIL=${LETSENCRYPT_EMAIL}
     - ROOT_PASSWORD_HASH=${ROOT_PASSWORD_HASH}
     volumes:
       - ${LOCAL_DIR}/logs:/app/logs/

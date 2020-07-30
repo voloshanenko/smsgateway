@@ -72,7 +72,7 @@ def main():
         print("......Repo URL: '" + git_url + "'")
 
 
-        stack_env_variables = ["LOCAL_DIR", "ROOT_PASSWORD_HASH"]
+        stack_env_variables = ["VIRTUAL_HOST", "VIRTUAL_PORT", "LETSENCRYPT_HOST", "LETSENCRYPT_EMAIL", "LOCAL_DIR", "ROOT_PASSWORD_HASH"]
         stack_env_dict = []
 
         for env_variable in stack_env_variables:
