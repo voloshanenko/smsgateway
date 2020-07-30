@@ -30,7 +30,6 @@ services:
     restart: unless-stopped
     volumes:
       - ${LOCAL_DIR}/logs:/app/logs/
-      - ${LOCAL_DIR}/db:/app/common/sqlite/
     networks:
       - webproxy
 
@@ -44,7 +43,6 @@ services:
     - PID_ID={{ loop.index }}
     volumes:
       - ${LOCAL_DIR}/logs:/app/logs/
-      - ${LOCAL_DIR}/db:/app/common/sqlite/
     networks:
       - webproxy
 

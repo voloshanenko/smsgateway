@@ -18,6 +18,8 @@ services:
     volumes:
       - ${LOCAL_DIR}/logs:/app/logs/
       - ${LOCAL_DIR}/db:/app/common/sqlite/
+    networks:
+      - webproxy
 
   pis:
     build: .
@@ -28,7 +30,8 @@ services:
     restart: unless-stopped
     volumes:
       - ${LOCAL_DIR}/logs:/app/logs/
-      - ${LOCAL_DIR}/db:/app/common/sqlite/
+    networks:
+      - webproxy
 
   pid_1:
     build: .
@@ -39,7 +42,8 @@ services:
     - PID_ID=1
     volumes:
       - ${LOCAL_DIR}/logs:/app/logs/
-      - ${LOCAL_DIR}/db:/app/common/sqlite/
+    networks:
+      - webproxy
 
   pid_2:
     build: .
@@ -50,7 +54,8 @@ services:
     - PID_ID=2
     volumes:
       - ${LOCAL_DIR}/logs:/app/logs/
-      - ${LOCAL_DIR}/db:/app/common/sqlite/
+    networks:
+      - webproxy
 
   pid_3:
     build: .
@@ -61,7 +66,8 @@ services:
     - PID_ID=3
     volumes:
       - ${LOCAL_DIR}/logs:/app/logs/
-      - ${LOCAL_DIR}/db:/app/common/sqlite/
+    networks:
+      - webproxy
 
   pid_4:
     build: .
@@ -72,7 +78,8 @@ services:
     - PID_ID=4
     volumes:
       - ${LOCAL_DIR}/logs:/app/logs/
-      - ${LOCAL_DIR}/db:/app/common/sqlite/
+    networks:
+      - webproxy
 
   pid_5:
     build: .
@@ -83,7 +90,8 @@ services:
     - PID_ID=5
     volumes:
       - ${LOCAL_DIR}/logs:/app/logs/
-      - ${LOCAL_DIR}/db:/app/common/sqlite/
+    networks:
+      - webproxy
 
   pid_6:
     build: .
@@ -94,7 +102,8 @@ services:
     - PID_ID=6
     volumes:
       - ${LOCAL_DIR}/logs:/app/logs/
-      - ${LOCAL_DIR}/db:/app/common/sqlite/
+    networks:
+      - webproxy
 
   pid_7:
     build: .
@@ -105,7 +114,8 @@ services:
     - PID_ID=7
     volumes:
       - ${LOCAL_DIR}/logs:/app/logs/
-      - ${LOCAL_DIR}/db:/app/common/sqlite/
+    networks:
+      - webproxy
 
   pid_8:
     build: .
@@ -116,7 +126,8 @@ services:
     - PID_ID=8
     volumes:
       - ${LOCAL_DIR}/logs:/app/logs/
-      - ${LOCAL_DIR}/db:/app/common/sqlite/
+    networks:
+      - webproxy
 
   pid_9:
     build: .
@@ -127,7 +138,8 @@ services:
     - PID_ID=9
     volumes:
       - ${LOCAL_DIR}/logs:/app/logs/
-      - ${LOCAL_DIR}/db:/app/common/sqlite/
+    networks:
+      - webproxy
 
   pid_10:
     build: .
@@ -138,7 +150,8 @@ services:
     - PID_ID=10
     volumes:
       - ${LOCAL_DIR}/logs:/app/logs/
-      - ${LOCAL_DIR}/db:/app/common/sqlite/
+    networks:
+      - webproxy
 
   pid_11:
     build: .
@@ -149,7 +162,8 @@ services:
     - PID_ID=11
     volumes:
       - ${LOCAL_DIR}/logs:/app/logs/
-      - ${LOCAL_DIR}/db:/app/common/sqlite/
+    networks:
+      - webproxy
 
   pid_12:
     build: .
@@ -160,7 +174,8 @@ services:
     - PID_ID=12
     volumes:
       - ${LOCAL_DIR}/logs:/app/logs/
-      - ${LOCAL_DIR}/db:/app/common/sqlite/
+    networks:
+      - webproxy
 
   pid_13:
     build: .
@@ -171,7 +186,8 @@ services:
     - PID_ID=13
     volumes:
       - ${LOCAL_DIR}/logs:/app/logs/
-      - ${LOCAL_DIR}/db:/app/common/sqlite/
+    networks:
+      - webproxy
 
   pid_14:
     build: .
@@ -182,7 +198,8 @@ services:
     - PID_ID=14
     volumes:
       - ${LOCAL_DIR}/logs:/app/logs/
-      - ${LOCAL_DIR}/db:/app/common/sqlite/
+    networks:
+      - webproxy
 
   pid_15:
     build: .
@@ -193,7 +210,8 @@ services:
     - PID_ID=15
     volumes:
       - ${LOCAL_DIR}/logs:/app/logs/
-      - ${LOCAL_DIR}/db:/app/common/sqlite/
+    networks:
+      - webproxy
 
   pid_16:
     build: .
@@ -204,5 +222,12 @@ services:
     - PID_ID=16
     volumes:
       - ${LOCAL_DIR}/logs:/app/logs/
-      - ${LOCAL_DIR}/db:/app/common/sqlite/
+    networks:
+      - webproxy
 
+    networks:
+      - webproxy
+networks:
+  webproxy:
+    external:
+      name: webproxy
