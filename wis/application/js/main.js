@@ -43,6 +43,27 @@ $.tablesorter.addParser({
 
 window.onload = function() {
     getRouting();
+    var oldVal = "";
+    $("#mobiles").on("change keyup paste", function() {
+        var currentVal = $(this).val();
+        if(currentVal == oldVal) {
+            return; //check to prevent multiple simultaneous triggers
+        }
+
+        oldVal = currentVal;
+
+        var count = countLine(this)
+        $("#mobiles_count").text(count)
+    });
+
+    $("#content").on("change keyup paste", function() {
+        var currentVal = $(this).val();
+        if(currentVal == oldVal) {
+            return; //check to prevent multiple simultaneous triggers
+        }
+        oldVal = currentVal;
+        $("#content_count").text(currentVal.length)
+    });
 }
 ;
 function getAllSms() {
@@ -91,7 +112,7 @@ function getSms() {
                     sorter: 'customDate'
                 }
             },
-            sortList: [[5, 1], [8, 1]],
+            sortList: [[6, 0], [7, 1]],
             theme: 'blue',
             widgets: ["zebra", "filter"],
             widthFixed: true
@@ -171,6 +192,22 @@ function sendsms_towis(appid, mobile, content){
             showToastr("error", error_message);
         }
     });
+}
+
+function countLine(element) {
+    var mobiles = $(element).val();
+    // Split each number per line, remove ; and remove empty elements if any
+    mobiles_array_final = mobiles.split("\n").map(n => n.replace(";", "").trim()).filter(n => n);
+
+    var count = 0
+    mobiles_array_final.forEach(function (mobnum) {
+        count += 1;
+    });
+    if (count){
+        return count;
+    }else {
+        return 0;
+    }
 }
 
 jQuery["postJSON"] = function( url, data, callback ) {
@@ -278,7 +315,7 @@ function getRouting() {
                     sorter: 'customDate'
                 }
             },
-            sortList: [[0, 1], [9, 1]],
+            sortList: [[2, 0], [8, 1]],
             theme: 'blue'
         });
     }

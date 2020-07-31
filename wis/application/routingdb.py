@@ -63,24 +63,36 @@ class Database(object):
         self.cur.execute(query)
 
     # Read routing entries
-    def read_routing(self, modemid=None):
+    def read_routing(self, modemid=None, web=False):
         smsgwglobals.wislogger.debug("ROUTERDB: Read routing entries")
-        query = ("SELECT " +
-                 "wisid, " +
-                 "modemid, " +
-                 "regex, " +
-                 "sms_count, " +
-                 "sms_limit, " +
-                 "account_balance, " +
-                 "imsi, " +
-                 "lbfactor, " +
-                 "wisurl, " +
-                 "pisurl, " +
-                 "modemname, " +
-                 "routingid, " +
-                 "obsolete, " +
-                 "changed " +
-                 "FROM routing")
+        if web:
+            query = ("SELECT " +
+                     "modemid, " +
+                     "sms_count, " +
+                     "sms_limit, " +
+                     "account_balance, " +
+                     "imsi, " +
+                     "modemname, " +
+                     "routingid, " +
+                     "obsolete " +
+                     "FROM routing")
+        else:
+            query = ("SELECT " +
+                     "wisid, " +
+                     "modemid, " +
+                    "regex, " +
+                    "sms_count, " +
+                    "sms_limit, " +
+                    "account_balance, " +
+                    "imsi, " +
+                    "lbfactor, " +
+                    "wisurl, " +
+                    "pisurl, " +
+                    "modemname, " +
+                    "routingid, " +
+                    "obsolete, " +
+                    "changed " +
+                    "FROM routing")
         try:
             if modemid is None:
                 rdblock.acquire()

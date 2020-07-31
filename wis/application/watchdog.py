@@ -116,6 +116,18 @@ class Watchdog_Route(threading.Thread):
                         # Add sms to global queue
                         wisglobals.watchdogThread.queue.put(smstrans.smsdict["smsid"])
                         wisglobals.watchdogThreadNotify.set()
+                elif int(status_code) == 31:
+                    # 99.9# that issue caused by socat lost connection, so reprocess
+                    # BUT use same smsid (after new route will be choosed it will decrease sms_count on route (IMSI)
+                    smsgwglobals.wislogger.debug("WATCHDOG [route: " + str(self.routingid) + "] PID lost connection to modem: " + str(smstrans.smsdict))
+                    try:
+                        Helper.processsms(smstrans)
+                    except apperror.NoRoutesFoundError:
+                        pass
+                    else:
+                        # Add sms to global queue
+                        wisglobals.watchdogThread.queue.put(smstrans.smsdict["smsid"])
+                        wisglobals.watchdogThreadNotify.set()
                 else:
                     if smstrans.smsdict["status"] == 0:
                         smstrans.smsdict["status"] = int(status_code)

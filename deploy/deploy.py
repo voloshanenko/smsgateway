@@ -56,6 +56,8 @@ def main():
                     print("......Delete container: '" + container + "'")
                     delete_container(endpoint_id=endpoint_id, container_name=container, jwt_token=jwt_token)
 
+	    # Get only UNIQ images
+	    containers_images = set(containers_images)
             if containers_images:
                 for image in containers_images:
                     print("......Found container image: '" + image + "'")

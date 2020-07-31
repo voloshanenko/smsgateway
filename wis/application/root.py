@@ -68,8 +68,16 @@ class ViewMain(Htmlpage):
                         <td><textarea id="mobiles" name="mobiles" rows="10" cols="50"></textarea></td>
                     </tr>
                     <tr>
+                        <td>Numbers of recepients: </td>
+                        <td><label id="mobiles_count">0</label></td>
+                    </tr>
+                    <tr>
                         <td>SMS:</td>
                         <td><textarea id="content" name="content" rows="10" cols="50"></textarea></>
+                    </tr>
+                    <tr>
+                        <td>Numbers of symbols: </td>
+                        <td><label id="content_count">0</label></td>
                     </tr>
                     <tr>
                         <td><button class="btn" type="button" onclick="sendSms()">Send SMS</button></td>
@@ -93,6 +101,15 @@ class ViewMain(Htmlpage):
 
 
 class Ajax():
+
+    @staticmethod
+    def remove_fields(self, d):
+        if not isinstance(d, (dict, list)):
+            return d
+        if isinstance(d, list):
+            return [self.remove_fields(self, v) for v in d]
+        return {k: self.remove_fields(self, v) for k, v in d.items()
+            if k not in {'priority', 'sourceip', 'xforwardedfor', 'smsintime'}}
 
     def getsms(self, all=False, date=None):
         smsgwglobals.wislogger.debug("AJAX: " + str(all))
@@ -126,7 +143,8 @@ class Ajax():
                 f = urllib.request.urlopen(request, data, timeout=5)
                 resp = f.read().decode('utf-8')
                 respdata = GlobalHelper.decodeAES(resp)
-                smsen = json.loads(respdata)
+                raw_smsen = json.loads(respdata)
+                smsen = self.remove_fields(self, raw_smsen)
 
             except urllib.error.URLError as e:
                 smsgwglobals.wislogger.debug(e)
@@ -209,7 +227,7 @@ class Ajax():
         th = []
         tr = []
 
-        rows = wisglobals.rdb.read_routing()
+        rows = wisglobals.rdb.read_routing(web=True)
 
         if len(rows) == 0:
             return "No routes - press button to reload!"

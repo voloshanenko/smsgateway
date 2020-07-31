@@ -281,6 +281,10 @@ class Modem(object):
             smsgwglobals.pidlogger.error(pidglobals.pidid + ": " +
                                          "Unable to init socat connection to: " + modem["remote_ip"] + ":" + modem["remote_ip"] + " for USBModem " + modem["modemid"])
             print(traceback.format_exc())
+
+        # Socat on remote hosts can be slow, wait at least 3 seconds before trying init modem
+        sleep(3)
+        smsgwglobals.pidlogger.debug("Socat connection established for modem id: " + modem["modemid"] + " --> " + str(device_name))
         # Check if our socat process still running
         global SOCAT_PROC
         if socat_proc.poll() is None:
