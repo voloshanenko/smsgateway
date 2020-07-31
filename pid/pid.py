@@ -246,6 +246,8 @@ class Modem(object):
 
         with open(gammu_config_path, 'w+') as configfile:
             config.write(configfile)
+        config_dump = str({section: dict(config[section]) for section in config.sections()})
+        smsgwglobals.pidlogger.debug("Gammu config for modem id: " + modem["modemid"] + " --> " + config_dump)
 
         return gammu_config_path
 
@@ -260,6 +262,8 @@ class Modem(object):
             except:
                 smsgwglobals.pidlogger.error(pidglobals.pidid + ": " +
                              "Unable to read port for for USBModem " + modem["modemid"])
+        smsgwglobals.pidlogger.debug("Socat port for modem id: " + modem["modemid"] + " --> " + str(gammu_port))
+
         return gammu_port if gammu_port else ""
 
     @staticmethod
