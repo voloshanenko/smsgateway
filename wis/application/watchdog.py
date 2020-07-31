@@ -104,6 +104,18 @@ class Watchdog_Route(threading.Thread):
                         smsgwglobals.wislogger.debug("WATCHDOG [route: " + str(self.routingid) + "] SEND deligated:" + str(smstrans.smsdict))
                     smsgwglobals.wislogger.debug("WATCHDOG [route: " + str(self.routingid) + "] SEND Update DB SUCCESS:" + str(smstrans.smsdict))
                     smstrans.updatedb()
+                elif int(status_code) == 2000:
+                    # PIS doesn't have modem endpoint - reprocess SMS and choose different route)
+                    # BUT use same smsid (after new route will be choosed it will decrease sms_count on route (IMSI)
+                    smsgwglobals.wislogger.debug("WATCHDOG [route: " + str(self.routingid) + "] PIS can't reach PID: " + str(smstrans.smsdict))
+                    try:
+                        Helper.processsms(smstrans)
+                    except apperror.NoRoutesFoundError:
+                        pass
+                    else:
+                        # Add sms to global queue
+                        wisglobals.watchdogThread.queue.put(smstrans.smsdict["smsid"])
+                        wisglobals.watchdogThreadNotify.set()
                 else:
                     if smstrans.smsdict["status"] == 0:
                         smstrans.smsdict["status"] = int(status_code)
@@ -133,8 +145,9 @@ class Watchdog_Route(threading.Thread):
             except apperror.NoRoutesFoundError:
                 pass
             else:
-                smsid = smstrans["sms"]["smsid"]
-                self.queue.put(smsid)
+                # Add sms to global queue
+                wisglobals.watchdogThread.queue.put(smstrans.smsdict["smsid"])
+                wisglobals.watchdogThreadNotify.set()
         except socket.timeout as e:
             smstrans.smsdict["status"] = 400
             smstrans.updatedb()
@@ -148,8 +161,9 @@ class Watchdog_Route(threading.Thread):
             except apperror.NoRoutesFoundError:
                 pass
             else:
-                smsid = smstrans["sms"]["smsid"]
-                self.queue.put(smsid)
+                # Add sms to global queue
+                wisglobals.watchdogThread.queue.put(smstrans.smsdict["smsid"])
+                wisglobals.watchdogThreadNotify.set()
 
     def process(self):
         smsgwglobals.wislogger.debug("WATCHDOG [route: " + str(self.routingid) + "] processing sms")
@@ -315,6 +329,8 @@ class Watchdog(threading.Thread):
                 # only continue if route contains data
                 if len(route) > 0:
                     self.dispatch_sms(smstrans, route)
+                else:
+                    print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!FFFFFFFFFF")
 
             self.queue.task_done()
             # Re run processing to make sure that queue empty

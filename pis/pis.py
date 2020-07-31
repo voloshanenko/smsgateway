@@ -98,17 +98,23 @@ class Root(object):
                 smsgwglobals.pislogger.warning("/sendsms: maxwaitpid " +
                                                "of " + str(maxwaitpid) +
                                                " seconds reached!")
-                cherrypy.response.status = 500
+                # If timeout occured - set own status code
+                status_code = 1000
+                cherrypy.response.status = 200
+                cherrypy.response.body = status_code
                 PID.removeclientsms(address, data['smsid'])
-                return
+                return str(status_code)
 
             else:
                 smsgwglobals.pislogger.warning("/sendsms: No PID for " +
                                                "modem " +
                                                data['modemid'] +
                                                " found!")
-                cherrypy.response.status = 500  # Internal Server Error
-                return
+                # If no modem endpoint to send - set own status code
+                status_code = 2000
+                cherrypy.response.status = 200
+                cherrypy.response.body = status_code
+                return str(status_code)
 
         except Exception as e:
             smsgwglobals.pislogger.debug("/sendsms: Internal Server "

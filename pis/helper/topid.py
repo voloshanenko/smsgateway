@@ -113,7 +113,8 @@ class PID(object):
         else:
             # else remove only clients from one PID
             address = str(address)
-            del pisglobals.knownpids[address]
+            del pisglobals.knownpids[address]["modemlist"]
+            del pisglobals.knownpids[address]["handler"]
             smsgwglobals.pislogger.debug("/ws: " + address +
                                          " - disconnected. Code: " +
                                          str(code) + " Reason: " + str(reason))

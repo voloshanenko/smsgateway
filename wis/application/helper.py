@@ -73,6 +73,12 @@ class Helper(object):
             # if there routes with sms_count == sms_limit remove them from possible
             possibleroutes[:] = [d for d in possibleroutes if d['sms_count'] < d['sms_limit']]
 
+            # if there routes with account_balance == 0.00 remove them from possible
+            #possibleroutes[:] = [d for d in possibleroutes if int(d['account_balance']) >= 0]
+
+            #if reprocess_sms:
+                # if we reprocess SMS - we need sure that SMs will go via different route
+
             smsgwglobals.wislogger.debug("HELPER: receiverouting %s", str(possibleroutes))
 
             # if we still have no possible routes raise error

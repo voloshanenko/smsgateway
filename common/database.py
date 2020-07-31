@@ -220,7 +220,9 @@ class Database(object):
                  "(smsid, modemid, imsi, targetnr, content, priority, " +
                  "appid, sourceip, xforwardedfor, smsintime, " +
                  "status, statustime) " +
-                 "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
+                 "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)" +
+                 "ON CONFLICT(smsid) DO UPDATE SET " +
+                 "modemid=excluded.modemid, imsi=excluded.imsi, statustime=excluded.statustime")
 
         try:
             smsgwglobals.dblogger.debug("SQLite: Insert SMS" +

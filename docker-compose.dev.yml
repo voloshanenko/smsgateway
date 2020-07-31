@@ -10,13 +10,6 @@ services:
     command: ["python", "wis.py"]
     restart: unless-stopped
     environment:
-    - DB_HOST=${DB_HOST}
-    - DB_NAME_CDR=${DB_NAME_CDR}
-    - DB_NAME_USERS=${DB_NAME_USERS}
-    - DB_USERNAME=${DB_USERNAME}
-    - DB_PASSWORD=${DB_PASSWORD}
-    - ASTERISK_HOST=${ASTERISK_HOST}
-    - ASTERISK_AMI_USERNAME=${ASTERISK_AMI_USERNAME}
     - ASTERISK_AMI_PASSWORD=${ASTERISK_AMI_PASSWORD}  
     volumes:
       - .:/app
@@ -29,30 +22,26 @@ services:
     command: ["python", "pis.py"]
     restart: unless-stopped
     environment:
-    - DB_HOST=${DB_HOST}
-    - DB_NAME_CDR=${DB_NAME_CDR}
-    - DB_NAME_USERS=${DB_NAME_USERS}
-    - DB_USERNAME=${DB_USERNAME}
-    - DB_PASSWORD=${DB_PASSWORD}
-    - ASTERISK_HOST=${ASTERISK_HOST}
-    - ASTERISK_AMI_USERNAME=${ASTERISK_AMI_USERNAME}
     - ASTERISK_AMI_PASSWORD=${ASTERISK_AMI_PASSWORD}
     volumes:
       - .:/app
 
-  pid:
+  pid_1:
     build: .
     working_dir: /app/pid
     command: ["python", "pid.py"]
     restart: unless-stopped
     environment:
-    - DB_HOST=${DB_HOST}
-    - DB_NAME_CDR=${DB_NAME_CDR}
-    - DB_NAME_USERS=${DB_NAME_USERS}
-    - DB_USERNAME=${DB_USERNAME}
-    - DB_PASSWORD=${DB_PASSWORD}
-    - ASTERISK_HOST=${ASTERISK_HOST}
-    - ASTERISK_AMI_USERNAME=${ASTERISK_AMI_USERNAME}
+    - ASTERISK_AMI_PASSWORD=${ASTERISK_AMI_PASSWORD}
+    volumes:
+      - .:/app
+
+  pid_2:
+    build: .
+    working_dir: /app/pid
+    command: ["python", "pid.py"]
+    restart: unless-stopped
+    environment:
     - ASTERISK_AMI_PASSWORD=${ASTERISK_AMI_PASSWORD}
     volumes:
       - .:/app
