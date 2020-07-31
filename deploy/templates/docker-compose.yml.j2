@@ -3,7 +3,7 @@ version: '2'
 services:
 
   {{ wis_service_identifier }}:
-    build: .
+    image: docker.voloshanenko.com/smsgateway
     ports:
     - "7777:7777"
     working_dir: /app/wis
@@ -22,7 +22,7 @@ services:
       - webproxy
 
   pis:
-    build: .
+    image: docker.voloshanenko.com/smsgateway
     ports:
     - "7788:7788"
     working_dir: /app/pis
@@ -35,7 +35,7 @@ services:
 
 {% for items in tty_devices.stdout_lines %}
   pid_{{ loop.index }}:
-    build: .
+    image: docker.voloshanenko.com/smsgateway
     working_dir: /app/pid
     command: ["python", "pid.py"]
     restart: unless-stopped

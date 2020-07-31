@@ -3,7 +3,7 @@ version: '2'
 services:
 
   wis:
-    build: .
+    image: docker.voloshanenko.com/smsgateway
     ports:
     - "7777:7777"
     working_dir: /app/wis
@@ -22,7 +22,7 @@ services:
       - webproxy
 
   pis:
-    build: .
+    image: docker.voloshanenko.com/smsgateway
     ports:
     - "7788:7788"
     working_dir: /app/pis
@@ -34,7 +34,7 @@ services:
       - webproxy
 
   pid_1:
-    build: .
+    image: docker.voloshanenko.com/smsgateway
     working_dir: /app/pid
     command: ["python", "pid.py"]
     restart: unless-stopped
@@ -46,7 +46,7 @@ services:
       - webproxy
 
   pid_2:
-    build: .
+    image: docker.voloshanenko.com/smsgateway
     working_dir: /app/pid
     command: ["python", "pid.py"]
     restart: unless-stopped
@@ -58,7 +58,7 @@ services:
       - webproxy
 
   pid_3:
-    build: .
+    image: docker.voloshanenko.com/smsgateway
     working_dir: /app/pid
     command: ["python", "pid.py"]
     restart: unless-stopped
@@ -70,7 +70,7 @@ services:
       - webproxy
 
   pid_4:
-    build: .
+    image: docker.voloshanenko.com/smsgateway
     working_dir: /app/pid
     command: ["python", "pid.py"]
     restart: unless-stopped
@@ -82,7 +82,7 @@ services:
       - webproxy
 
   pid_5:
-    build: .
+    image: docker.voloshanenko.com/smsgateway
     working_dir: /app/pid
     command: ["python", "pid.py"]
     restart: unless-stopped
@@ -94,7 +94,7 @@ services:
       - webproxy
 
   pid_6:
-    build: .
+    image: docker.voloshanenko.com/smsgateway
     working_dir: /app/pid
     command: ["python", "pid.py"]
     restart: unless-stopped
@@ -106,7 +106,7 @@ services:
       - webproxy
 
   pid_7:
-    build: .
+    image: docker.voloshanenko.com/smsgateway
     working_dir: /app/pid
     command: ["python", "pid.py"]
     restart: unless-stopped
@@ -118,7 +118,7 @@ services:
       - webproxy
 
   pid_8:
-    build: .
+    image: docker.voloshanenko.com/smsgateway
     working_dir: /app/pid
     command: ["python", "pid.py"]
     restart: unless-stopped
@@ -130,7 +130,7 @@ services:
       - webproxy
 
   pid_9:
-    build: .
+    image: docker.voloshanenko.com/smsgateway
     working_dir: /app/pid
     command: ["python", "pid.py"]
     restart: unless-stopped
@@ -142,7 +142,7 @@ services:
       - webproxy
 
   pid_10:
-    build: .
+    image: docker.voloshanenko.com/smsgateway
     working_dir: /app/pid
     command: ["python", "pid.py"]
     restart: unless-stopped
@@ -154,7 +154,7 @@ services:
       - webproxy
 
   pid_11:
-    build: .
+    image: docker.voloshanenko.com/smsgateway
     working_dir: /app/pid
     command: ["python", "pid.py"]
     restart: unless-stopped
@@ -166,7 +166,7 @@ services:
       - webproxy
 
   pid_12:
-    build: .
+    image: docker.voloshanenko.com/smsgateway
     working_dir: /app/pid
     command: ["python", "pid.py"]
     restart: unless-stopped
@@ -178,7 +178,7 @@ services:
       - webproxy
 
   pid_13:
-    build: .
+    image: docker.voloshanenko.com/smsgateway
     working_dir: /app/pid
     command: ["python", "pid.py"]
     restart: unless-stopped
@@ -190,7 +190,7 @@ services:
       - webproxy
 
   pid_14:
-    build: .
+    image: docker.voloshanenko.com/smsgateway
     working_dir: /app/pid
     command: ["python", "pid.py"]
     restart: unless-stopped
@@ -202,7 +202,7 @@ services:
       - webproxy
 
   pid_15:
-    build: .
+    image: docker.voloshanenko.com/smsgateway
     working_dir: /app/pid
     command: ["python", "pid.py"]
     restart: unless-stopped
@@ -214,7 +214,7 @@ services:
       - webproxy
 
   pid_16:
-    build: .
+    image: docker.voloshanenko.com/smsgateway
     working_dir: /app/pid
     command: ["python", "pid.py"]
     restart: unless-stopped
