@@ -325,7 +325,7 @@ class Watchdog(threading.Thread):
                 # try to reprocess route
                 smstrans.smsdict["status"] = 106
                 smstrans.updatedb()
-                Helper.processsms(smstrans, reprocess_sms=True)
+                Helper.processsms(smstrans)
                 smsid = smstrans["sms"]["smsid"]
                 self.queue.put(smsid)
             elif route[0]["wisid"] != wisglobals.wisid:
@@ -342,7 +342,11 @@ class Watchdog(threading.Thread):
                 if len(route) > 0:
                     self.dispatch_sms(smstrans, route)
                 else:
-                    print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!FFFFFFFFFF")
+                    # Reprocess
+                    smstrans.updatedb()
+                    Helper.processsms(smstrans)
+                    smsid = smstrans["sms"]["smsid"]
+                    self.queue.put(smsid)
 
             self.queue.task_done()
             # Re run processing to make sure that queue empty
