@@ -546,6 +546,8 @@ class Pid(object):
                 elif pidglobals.closingcode == 4000:
                     # leave while loop
                     # no connection to modem found!
+                    sleep(120)
+                    smsgwglobals.pidlogger.debug(pidglobals.pidid + ": Sleep 2 minutes before shutdown..." )
                     break
 
 
