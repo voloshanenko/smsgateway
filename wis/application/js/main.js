@@ -318,10 +318,22 @@ function getRouting() {
             sortList: [[2, 0], [8, 1]],
             theme: 'blue'
         });
-    }
-    );
+        var sent_sms = 0;
+        var sms_limit = 0;
+        $("#routingTable").find("td:nth-child(5)").each(function () {
+            sent_sms += parseInt($(this).html());
+        });
+        $("#routingTable").find("td:nth-child(6)").each(function () {
+            sms_limit += parseInt($(this).html());
+        });
+        availbale_sms = parseInt(sms_limit - sent_sms);
+        $("#available_sms").text(availbale_sms);
+    });
+
     getStatus();
+    setTimeout(getRouting, 5000);
 }
+
 $(document).ready(function() {
     setActDate();
     

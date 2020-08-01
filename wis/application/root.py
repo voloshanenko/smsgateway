@@ -44,45 +44,50 @@ class ViewMain(Htmlpage):
                         <td>Watchdog status:</td>
                         <td id="watchdogstatus"></td>
                     </tr>
-                    <tr>
-                        <td><button class="btn" type="button" onclick="getRouting()">Refresh Routing</button></td>
-                        <td></td>
-                        <td></td>
-                        </tr>
                     </tbody>
         </table>
         ''')
         str_list.append('<div class="routing">')
         str_list.append('</div>')
+        str_list.append('''
+        <table>
+            <tbody>
+                <tr>
+                    <td><b>Available SMS to send: </b></td>
+                    <td><label id="available_sms"></label></td>
+                </tr>
+            </tbody>
+        </table>                    
+        ''')
         str_list.append('<hr>')
         str_list.append('''
         <form id="sendsms">
         <table>
-                    <tbody>
-                    <tr>
-                        <td>Marketing company ID:</td>
-                        <td><input type="text" id="appid" name="appid"></td>
-                    </tr>
-                    <tr>
-                        <td>Send to:</td>
-                        <td><textarea id="mobiles" name="mobiles" rows="10" cols="50"></textarea></td>
-                    </tr>
-                    <tr>
-                        <td>Numbers of recepients: </td>
-                        <td><label id="mobiles_count">0</label></td>
-                    </tr>
-                    <tr>
-                        <td>SMS:</td>
-                        <td><textarea id="content" name="content" rows="10" cols="50"></textarea></>
-                    </tr>
-                    <tr>
-                        <td>Numbers of symbols: </td>
-                        <td><label id="content_count">0</label></td>
-                    </tr>
-                    <tr>
-                        <td><button class="btn" type="button" onclick="sendSms()">Send SMS</button></td>
-                    </tr>
-                    </tbody>
+            <tbody>
+                <tr>
+                    <td>Marketing company ID:</td>
+                    <td><input type="text" id="appid" name="appid"></td>
+                </tr>
+                <tr>
+                    <td>Send to:</td>
+                    <td><textarea id="mobiles" name="mobiles" rows="10" cols="50"></textarea></td>
+                </tr>
+                <tr>
+                    <td>Numbers of recepients: </td>
+                    <td><label id="mobiles_count">0</label></td>
+                </tr>
+                <tr>
+                    <td>SMS:</td>
+                    <td><textarea id="content" name="content" rows="10" cols="50"></textarea></>
+                </tr>
+                <tr>
+                    <td>Numbers of symbols: </td>
+                    <td><label id="content_count">0</label></td>
+                </tr>
+                <tr>
+                    <td><button class="btn" type="button" onclick="sendSms()">Send SMS</button></td>
+                </tr>
+            </tbody>
         </table>
         </form>
         <hr>

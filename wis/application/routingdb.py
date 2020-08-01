@@ -72,9 +72,7 @@ class Database(object):
                      "sms_limit, " +
                      "account_balance, " +
                      "imsi, " +
-                     "modemname, " +
-                     "routingid, " +
-                     "obsolete " +
+                     "modemname " +
                      "FROM routing")
         else:
             query = ("SELECT " +
