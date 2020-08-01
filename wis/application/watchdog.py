@@ -104,22 +104,12 @@ class Watchdog_Route(threading.Thread):
                         smsgwglobals.wislogger.debug("WATCHDOG [route: " + str(self.routingid) + "] SEND deligated:" + str(smstrans.smsdict))
                     smsgwglobals.wislogger.debug("WATCHDOG [route: " + str(self.routingid) + "] SEND Update DB SUCCESS:" + str(smstrans.smsdict))
                     smstrans.updatedb()
-                elif int(status_code) == 2000:
-                    # PIS doesn't have modem endpoint - reprocess SMS and choose different route)
+                elif int(status_code) == 2000 or int(status_code) == 31 or int(status_code) == 27:
+                    # PIS doesn't have modem endpoint - reprocess SMS and choose different route) - Error 2000
+                    # Modem fail - reprocess SMS and choose different route) - Error 31 (can't read SMSC nummber, 99.99% - we just lost connection)
+                    # Modem fail - reprocess SMS and choose different route) - Error 27 ( no money or SIM card blocked)
                     # BUT use same smsid (after new route will be choosed it will decrease sms_count on route (IMSI)
                     smsgwglobals.wislogger.debug("WATCHDOG [route: " + str(self.routingid) + "] PIS can't reach PID: " + str(smstrans.smsdict))
-                    try:
-                        Helper.processsms(smstrans)
-                    except apperror.NoRoutesFoundError:
-                        pass
-                    else:
-                        # Add sms to global queue
-                        wisglobals.watchdogThread.queue.put(smstrans.smsdict["smsid"])
-                        wisglobals.watchdogThreadNotify.set()
-                elif int(status_code) == 31:
-                    # 99.9# that issue caused by socat lost connection, so reprocess
-                    # BUT use same smsid (after new route will be choosed it will decrease sms_count on route (IMSI)
-                    smsgwglobals.wislogger.debug("WATCHDOG [route: " + str(self.routingid) + "] PID lost connection to modem: " + str(smstrans.smsdict))
                     try:
                         Helper.processsms(smstrans)
                     except apperror.NoRoutesFoundError:

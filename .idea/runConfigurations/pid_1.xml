@@ -7,7 +7,7 @@
       <env name="PYTHONUNBUFFERED" value="1" />
       <env name="PID_ID" value="1" />
     </envs>
-    <option name="SDK_HOME" value="docker-compose://[$PROJECT_DIR$/docker-compose.dev.yml]:pid/python" />
+    <option name="SDK_HOME" value="docker-compose://[$PROJECT_DIR$/docker-compose.dev.yml]:pid_1/python" />
     <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/pid" />
     <option name="IS_MODULE_SDK" value="false" />
     <option name="ADD_CONTENT_ROOTS" value="true" />
