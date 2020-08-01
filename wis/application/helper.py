@@ -49,6 +49,7 @@ class Helper(object):
             if routes is None or len(routes) == 0:
                 sms.smsdict["status"] = 104
                 sms.smsdict["modemid"] = "NoRoutes"
+                sms.smsdict["imsi"] = ""
                 sms.smsdict["statustime"] = datetime.utcnow()
                 sms.writetodb()
                 smsgwglobals.wislogger.debug("ROUTES empty!")
@@ -76,15 +77,13 @@ class Helper(object):
             # if there routes with account_balance == 0.00 remove them from possible
             #possibleroutes[:] = [d for d in possibleroutes if int(d['account_balance']) >= 0]
 
-            #if reprocess_sms:
-                # if we reprocess SMS - we need sure that SMs will go via different route
-
             smsgwglobals.wislogger.debug("HELPER: receiverouting %s", str(possibleroutes))
 
             # if we still have no possible routes raise error
             if possibleroutes is None or len(possibleroutes) == 0:
                 sms.smsdict["status"] = 104
                 sms.smsdict["modemid"] = "NoPossibleRoutes"
+                sms.smsdict["imsi"] = ""
                 sms.smsdict["statustime"] = datetime.utcnow()
                 sms.writetodb()
                 smsgwglobals.wislogger.debug("POSSIBLE ROUTES empty!")

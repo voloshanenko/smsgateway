@@ -314,8 +314,12 @@ class Watchdog(threading.Thread):
                 # try to reprocess route
                 smstrans.smsdict["status"] = 106
                 smstrans.updatedb()
-                Helper.processsms(smstrans)
-                self.queue.put(smstrans.smsdict["smsid"])
+                try:
+                    Helper.processsms(smstrans)
+                except apperror.NoRoutesFoundError:
+                    pass
+                else:
+                    self.queue.put(smstrans.smsdict["smsid"])
             elif route[0]["wisid"] != wisglobals.wisid:
                 self.deligate(smstrans, route)
             else:
@@ -332,8 +336,12 @@ class Watchdog(threading.Thread):
                 else:
                     # Reprocess
                     smstrans.updatedb()
-                    Helper.processsms(smstrans)
-                    self.queue.put(smstrans.smsdict["smsid"])
+                    try:
+                        Helper.processsms(smstrans)
+                    except apperror.NoRoutesFoundError:
+                        pass
+                    else:
+                        self.queue.put(smstrans.smsdict["smsid"])
 
             # Re run processing to make sure that queue empty
             self.process()
