@@ -179,9 +179,8 @@ class Watchdog_Route(threading.Thread):
             pass
         else:
             self.send(sms)
-            # Each modem in any case will be sending SMS in sequantal mode.
-            sleep(2)
-            self.queue.task_done()
+            # Each modem in any case will be sending SMS in sequantal mode. So sleep a bit
+            sleep(3)
             # Re run processing to make sure that queue empty
             self.process()
 
@@ -316,8 +315,7 @@ class Watchdog(threading.Thread):
                 smstrans.smsdict["status"] = 106
                 smstrans.updatedb()
                 Helper.processsms(smstrans)
-                smsid = smstrans["sms"]["smsid"]
-                self.queue.put(smsid)
+                self.queue.put(smstrans.smsdict["smsid"])
             elif route[0]["wisid"] != wisglobals.wisid:
                 self.deligate(smstrans, route)
             else:
@@ -335,10 +333,8 @@ class Watchdog(threading.Thread):
                     # Reprocess
                     smstrans.updatedb()
                     Helper.processsms(smstrans)
-                    smsid = smstrans["sms"]["smsid"]
-                    self.queue.put(smsid)
+                    self.queue.put(smstrans.smsdict["smsid"])
 
-            self.queue.task_done()
             # Re run processing to make sure that queue empty
             self.process()
 
