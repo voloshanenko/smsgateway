@@ -170,6 +170,10 @@ class Watchdog_Route(threading.Thread):
         smsgwglobals.wislogger.debug("WATCHDOG [route: " + str(self.routingid) + "] processing sms")
 
         try:
+            # Each modem in any case will be sending SMS in sequantal mode. So sleep a bit
+            # Re run processing to make sure that queue empty
+            sleep_time = randrange(5,10)
+            sleep(sleep_time)
             sms = self.queue.get(block=False)
         except Empty:
             # No sms in queue
@@ -178,10 +182,6 @@ class Watchdog_Route(threading.Thread):
             pass
         else:
             self.send(sms)
-            # Each modem in any case will be sending SMS in sequantal mode. So sleep a bit
-            sleep_time = randrange(5,10)
-            sleep(sleep_time)
-            # Re run processing to make sure that queue empty
             self.process()
 
     def stop(self):
