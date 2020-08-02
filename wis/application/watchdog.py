@@ -26,6 +26,7 @@ from application.helper import Helper
 from application import apperror
 from queue import Queue, Empty
 import urllib.request
+from random import randrange
 import json
 import socket
 
@@ -141,7 +142,6 @@ class Watchdog_Route(threading.Thread):
             smsgwglobals.wislogger.debug("WATCHDOG [route: " + str(self.routingid) + "] SEND Get peers NOTOK")
 
             # On 500 error - (probably PID/route died - try to reprocess sms)
-            sleep(5)
             try:
                 Helper.processsms(smstrans, reprocess_sms=True)
             except apperror.NoRoutesFoundError:
@@ -157,7 +157,6 @@ class Watchdog_Route(threading.Thread):
             smsgwglobals.wislogger.debug("WATCHDOG [route: " + str(self.routingid) + "] SEND Socket connection timeout")
 
             # On 400 error - (probably PID/route died - try to reprocess sms)
-            sleep(5)
             try:
                 Helper.processsms(smstrans, reprocess_sms=True)
             except apperror.NoRoutesFoundError:
@@ -180,7 +179,8 @@ class Watchdog_Route(threading.Thread):
         else:
             self.send(sms)
             # Each modem in any case will be sending SMS in sequantal mode. So sleep a bit
-            sleep(5)
+            sleep_time = randrange(5,10)
+            sleep(sleep_time)
             # Re run processing to make sure that queue empty
             self.process()
 
