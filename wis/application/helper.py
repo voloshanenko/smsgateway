@@ -44,7 +44,7 @@ class Helper(object):
         sms.smsdict["smsintime"] = datetime.utcnow()
         possibleroutes = []
 
-        if Helper.allowedtime():
+        if Helper.allowed_time():
             try:
                 routes = wisglobals.rdb.read_routing()
 
