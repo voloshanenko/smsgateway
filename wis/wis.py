@@ -469,8 +469,8 @@ class Wisserver(object):
         wisglobals.pissendtimeout = int(cfg.getvalue('pissendtimeout', '20', 'wis'))
 
         # Read allowed timeframe for sending start/finish time
-        wisglobals.resendstarttime = cfg.getvalue('allowedstarttime', '01:00', 'wis')
-        wisglobals.resendfinishtime = cfg.getvalue('allowedfinishtime', '23:30', 'wis')
+        wisglobals.allowedstarttime = cfg.getvalue('allowedstarttime', '01:00', 'wis')
+        wisglobals.allowedfinishtime = cfg.getvalue('allowedfinishtime', '23:30', 'wis')
 
         # Read resend scheduler start/finish timeframe
         wisglobals.resendstarttime = cfg.getvalue('resendstarttime', '09:00', 'wis')
