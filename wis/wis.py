@@ -31,7 +31,7 @@ from common.filelogger import FileLogger
 from application.helper import Helper
 from application import root
 from application.smstransfer import Smstransfer
-from application.watchdog import Watchdog
+from application.watchdog import Watchdog, Watchdog_Scheduler
 from application.router import Router
 from application.stats import Logstash
 from application import wisglobals
@@ -387,7 +387,6 @@ class Root(object):
 
         # this is used for parameter extraction
         # Create sms data object and make sure that it has a smsid
-        #sleep(0.1)
         sms_uuid = str(uuid.uuid1())
         sms = Smstransfer(content=json_data.get('content'),
                           targetnr=json_data.get('mobile'),
@@ -468,6 +467,15 @@ class Wisserver(object):
 
         # read pissendtimeout
         wisglobals.pissendtimeout = int(cfg.getvalue('pissendtimeout', '20', 'wis'))
+
+        # Read allowed timeframe for sending start/finish time
+        wisglobals.resendstarttime = cfg.getvalue('allowedstarttime', '01:00', 'wis')
+        wisglobals.resendfinishtime = cfg.getvalue('allowedfinishtime', '23:30', 'wis')
+
+        # Read resend scheduler start/finish timeframe
+        wisglobals.resendstarttime = cfg.getvalue('resendstarttime', '09:00', 'wis')
+        wisglobals.resendfinishtime = cfg.getvalue('resendfinishtime', '18:00', 'wis')
+        wisglobals.resendinterval = int(cfg.getvalue('resendinterval', '5', 'wis'))
 
         # check if ssl is enabled
         wisglobals.sslenabled = cfg.getvalue('sslenabled', None, 'wis')
@@ -565,6 +573,8 @@ def main(argv):
     wisserver = Wisserver()
     wisserver.run()
 
+    # Start scheduler for sms resending and other maintenance operations
+    Watchdog_Scheduler()
 
 # Called when running from command line
 if __name__ == '__main__':

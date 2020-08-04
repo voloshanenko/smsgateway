@@ -30,6 +30,7 @@ import urllib.request
 import json
 import re
 import socket
+import pytz
 
 
 class Helper(object):
@@ -42,84 +43,109 @@ class Helper(object):
 
         sms.smsdict["smsintime"] = datetime.utcnow()
         possibleroutes = []
-        try:
-            routes = wisglobals.rdb.read_routing()
 
-            # check if we have routes
-            if routes is None or len(routes) == 0:
-                sms.smsdict["status"] = 104
-                sms.smsdict["modemid"] = "NoRoutes"
-                sms.smsdict["imsi"] = ""
-                sms.smsdict["statustime"] = datetime.utcnow()
-                sms.writetodb()
-                smsgwglobals.wislogger.debug("ROUTES empty!")
-                raise apperror.NoRoutesFoundError()
+        if Helper.allowedtime():
+            try:
+                routes = wisglobals.rdb.read_routing()
 
-            # try to match routes, get possible routes
-            for route in routes:
-                match = re.search(route["regex"], sms.smsdict["targetnr"])
-                if match is not None:
-                    possibleroutes.append(route)
+                # check if we have routes
+                if routes is None or len(routes) == 0:
+                    sms.smsdict["status"] = 104
+                    sms.smsdict["modemid"] = "NoRoutes"
+                    sms.smsdict["imsi"] = ""
+                    sms.smsdict["statustime"] = datetime.utcnow()
+                    sms.writetodb()
+                    smsgwglobals.wislogger.debug("ROUTES empty!")
+                    raise apperror.NoRoutesFoundError()
 
-            # if no matches than take default modem
-            if possibleroutes is None or len(possibleroutes) == 0:
+                # try to match routes, get possible routes
                 for route in routes:
-                    match = re.search(route["regex"], "fallback")
+                    match = re.search(route["regex"], sms.smsdict["targetnr"])
                     if match is not None:
                         possibleroutes.append(route)
 
-            # if there are obsolete routes remove them from possible
-            possibleroutes[:] = [d for d in possibleroutes if d['obsolete'] < 13]
+                # if no matches than take default modem
+                if possibleroutes is None or len(possibleroutes) == 0:
+                    for route in routes:
+                        match = re.search(route["regex"], "fallback")
+                        if match is not None:
+                            possibleroutes.append(route)
 
-            # if there routes with sms_count == sms_limit remove them from possible
-            possibleroutes[:] = [d for d in possibleroutes if d['sms_count'] < d['sms_limit']]
+                # if there are obsolete routes remove them from possible
+                possibleroutes[:] = [d for d in possibleroutes if d['obsolete'] < 13]
 
-            # if there routes with account_balance == 0.00 remove them from possible
-            #possibleroutes[:] = [d for d in possibleroutes if int(d['account_balance']) >= 0]
+                # if there routes with sms_count == sms_limit remove them from possible
+                possibleroutes[:] = [d for d in possibleroutes if d['sms_count'] < d['sms_limit']]
 
-            smsgwglobals.wislogger.debug("HELPER: receiverouting %s", str(possibleroutes))
+                # if there routes with account_balance == 0.00 remove them from possible
+                #possibleroutes[:] = [d for d in possibleroutes if int(d['account_balance']) >= 0]
 
-            # if we still have no possible routes raise error
-            if possibleroutes is None or len(possibleroutes) == 0:
-                sms.smsdict["status"] = 104
-                sms.smsdict["modemid"] = "NoPossibleRoutes"
-                sms.smsdict["imsi"] = ""
-                sms.smsdict["statustime"] = datetime.utcnow()
-                sms.writetodb()
-                smsgwglobals.wislogger.debug("POSSIBLE ROUTES empty!")
-                raise apperror.NoRoutesFoundError()
+                smsgwglobals.wislogger.debug("HELPER: receiverouting %s", str(possibleroutes))
 
-            # decide modemid to send sms
-            # if only one possibility just set it and save it
-            if len(possibleroutes) == 1:
-                sms.smsdict["modemid"] = possibleroutes[0]["modemid"]
-                sms.smsdict["imsi"] = possibleroutes[0]["imsi"]
-                sms.smsdict["status"] = 0
-                sms.smsdict["statustime"] = datetime.utcnow()
-                wisglobals.rdb.raise_sms_count(sms.smsdict["modemid"])
-                sms.writetodb()
-                smsgwglobals.wislogger.debug("HELPER: receiverouting One route found!")
-                smsgwglobals.wislogger.debug("HELPER: receiverouting %s ", possibleroutes)
-            else:
-                smsgwglobals.wislogger.debug("More than one route found!")
-                lbcount = 1000000
-                selectedroute = None
-                for route in possibleroutes:
-                    if route["sms_count"] / route["lbfactor"] <= lbcount:
-                        lbcount = route["sms_count"] / route["lbfactor"]
-                        selectedroute = route
+                # if we still have no possible routes raise error
+                if possibleroutes is None or len(possibleroutes) == 0:
+                    sms.smsdict["status"] = 104
+                    sms.smsdict["modemid"] = "NoPossibleRoutes"
+                    sms.smsdict["imsi"] = ""
+                    sms.smsdict["statustime"] = datetime.utcnow()
+                    sms.writetodb()
+                    smsgwglobals.wislogger.debug("POSSIBLE ROUTES empty!")
+                    raise apperror.NoRoutesFoundError()
 
-                smsgwglobals.wislogger.debug("HELPER: One route selected!")
-                smsgwglobals.wislogger.debug("HELPER: receiverouting %s ", possibleroutes)
-                sms.smsdict["modemid"] = selectedroute["modemid"]
-                sms.smsdict["imsi"] = selectedroute["imsi"]
-                sms.smsdict["status"] = 0
-                sms.smsdict["statustime"] = datetime.utcnow()
-                wisglobals.rdb.raise_sms_count(sms.smsdict["modemid"])
-                sms.writetodb()
+                # decide modemid to send sms
+                # if only one possibility just set it and save it
+                if len(possibleroutes) == 1:
+                    sms.smsdict["modemid"] = possibleroutes[0]["modemid"]
+                    sms.smsdict["imsi"] = possibleroutes[0]["imsi"]
+                    sms.smsdict["status"] = 0
+                    sms.smsdict["statustime"] = datetime.utcnow()
+                    wisglobals.rdb.raise_sms_count(sms.smsdict["modemid"])
+                    sms.writetodb()
+                    smsgwglobals.wislogger.debug("HELPER: receiverouting One route found!")
+                    smsgwglobals.wislogger.debug("HELPER: receiverouting %s ", possibleroutes)
+                else:
+                    smsgwglobals.wislogger.debug("More than one route found!")
+                    lbcount = 1000000
+                    selectedroute = None
+                    for route in possibleroutes:
+                        if route["sms_count"] / route["lbfactor"] <= lbcount:
+                            lbcount = route["sms_count"] / route["lbfactor"]
+                            selectedroute = route
 
-        except error.DatabaseError as e:
-            smsgwglobals.wislogger.debug(e.message)
+                    smsgwglobals.wislogger.debug("HELPER: One route selected!")
+                    smsgwglobals.wislogger.debug("HELPER: receiverouting %s ", possibleroutes)
+                    sms.smsdict["modemid"] = selectedroute["modemid"]
+                    sms.smsdict["imsi"] = selectedroute["imsi"]
+                    sms.smsdict["status"] = 0
+                    sms.smsdict["statustime"] = datetime.utcnow()
+                    wisglobals.rdb.raise_sms_count(sms.smsdict["modemid"])
+                    sms.writetodb()
+            except error.DatabaseError as e:
+                smsgwglobals.wislogger.debug(e.message)
+        else:
+            sms.smsdict["status"] = 105
+            sms.smsdict["modemid"] = "NotAllowedTimeFrame"
+            sms.smsdict["imsi"] = ""
+            sms.smsdict["statustime"] = datetime.utcnow()
+            sms.writetodb()
+            smsgwglobals.wislogger.debug("Not allowed timeframe to process SMS!")
+            raise apperror.NotAllowedTimeFrame()
+
+    @staticmethod
+    def allowed_time():
+        allowed = False
+        start_h, start_m = wisglobals.allowedstarttime.split(":")
+        finish_h, finish_m = wisglobals.allowedfinishtime.split(":")
+
+        ua_timezone = pytz.timezone("Europe/Kiev")
+        now_ua = datetime.utcnow().astimezone(ua_timezone)
+        allowed_start_time = datetime(now_ua.year, now_ua.month, now_ua.day, int(start_h), int(start_m), tzinfo=ua_timezone)
+        allowed_end_time = datetime(now_ua.year, now_ua.month, now_ua.day, int(finish_h), int(finish_m), tzinfo=ua_timezone)
+
+        if now_ua > allowed_start_time and now_ua < allowed_end_time:
+            allowed = True
+
+        return allowed
 
     @staticmethod
     def checkrouting():

@@ -28,4 +28,8 @@ class UserNotFoundError(AppError):
 
 class NoRoutesFoundError(AppError):
     def __init__(self):
-        self.message = "User not in database"
+        self.message = "POSSIBLE ROUTES empty!"
+
+class NotAllowedTimeFrame(AppError):
+    def __init__(self):
+        self.message = "Not allowed timeframe to process SMS!"

@@ -3,6 +3,11 @@ wis_service_identifier: "wis"
 pis_service_identifier: "pis"
 pid_service_identifier: "pid"
 
+allowed_start_time: "01:00" 
+allowed_finish_time: "23:30"
+resend_start_time: "9:30"
+resend_finish_time: "17:30"
+
 systemd_dir: "/etc/systemd/system"
 smsgateway_local_dir: "/var/lib/smsgateway"
 smsgateway_docker_dir: "/app"

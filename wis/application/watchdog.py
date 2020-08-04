@@ -18,8 +18,9 @@ from common import smsgwglobals
 from common import database
 from common import error
 from common.helper import GlobalHelper
-from datetime import datetime
+from datetime import datetime, timedelta
 from time import sleep
+from apscheduler.schedulers.background import BackgroundScheduler
 from application import wisglobals
 from application.smstransfer import Smstransfer
 from application.helper import Helper
@@ -29,6 +30,62 @@ import urllib.request
 from random import randrange
 import json
 import socket
+import pytz
+
+
+class Watchdog_Scheduler():
+    def __init__(self):
+        self.db = database.Database()
+        smsgwglobals.wislogger.debug("SCHEDULER: starting")
+        self.scheduler = BackgroundScheduler()
+        self.scheduler.start()
+        smsgwglobals.wislogger.debug("SCHEDULER: REPROCESS_SMS job starting. Interval: " + wisglobals.resendinterval + " minutes")
+        self.scheduler.add_job(self.reprocess_sms, 'interval', minutes = wisglobals.resendinterval)
+
+    def reprocess_sms(self):
+        if self.allowed_time():
+            # Read SMS with statuses NoRoutes + NoPossibleRoutes
+            smsen = self.db.read_sms(status=104)
+            smsen = smsen + self.db.read_sms(status=105)
+            if smsen:
+                for sms in smsen:
+                    smsgwglobals.wislogger.debug("REPROCESS_SMS job: processing: " + str(sms))
+
+                    smstrans = Smstransfer(content=sms.get('content'),
+                                      targetnr=sms.get('targetnr'),
+                                      priority=sms.get('priority'),
+                                      appid=sms.get('appid'),
+                                      sourceip=sms.get('sourceip'),
+                                      xforwardedfor=sms.get('xforwardedfor'),
+                                      smsid=sms.get('smsid'))
+                    try:
+                        Helper.processsms(smstrans)
+                    except apperror.NoRoutesFoundError:
+                        pass
+                    else:
+                        # Add sms to global queue
+                        wisglobals.watchdogThread.queue.put(smstrans.smsdict["smsid"])
+                        wisglobals.watchdogThreadNotify.set()
+            else:
+                smsgwglobals.wislogger.debug("REPROCESS_SMS job: skipping. NO SMS to process")
+        else:
+            smsgwglobals.wislogger.debug("REPROCESS_SMS job: skipping. Not allowed timeframe")
+
+    @staticmethod
+    def allowed_time():
+        allowed = False
+        start_h, start_m = wisglobals.resendstarttime.split(":")
+        finish_h, finish_m = wisglobals.resendfinishtime.split(":")
+
+        ua_timezone = pytz.timezone("Europe/Kiev")
+        now_ua = datetime.utcnow().astimezone(ua_timezone)
+        resend_start_time = datetime(now_ua.year, now_ua.month, now_ua.day, int(start_h), int(start_m), tzinfo=ua_timezone)
+        resend_end_time = datetime(now_ua.year, now_ua.month, now_ua.day, int(finish_h), int(finish_m), tzinfo=ua_timezone)
+
+        if now_ua > resend_start_time and now_ua < resend_end_time:
+            allowed = True
+
+        return allowed
 
 class Watchdog_Route(threading.Thread):
 
