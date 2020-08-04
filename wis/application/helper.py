@@ -72,7 +72,7 @@ class Helper(object):
                             possibleroutes.append(route)
 
                 # if there are obsolete routes remove them from possible
-                possibleroutes[:] = [d for d in possibleroutes if d['obsolete'] < 13]
+                possibleroutes[:] = [d for d in possibleroutes if d['obsolete'] < 1]
 
                 # if there routes with sms_count == sms_limit remove them from possible
                 possibleroutes[:] = [d for d in possibleroutes if d['sms_count'] < d['sms_limit']]

@@ -475,7 +475,7 @@ class Wisserver(object):
         # Read resend scheduler start/finish timeframe
         wisglobals.resendstarttime = cfg.getvalue('resendstarttime', '09:00', 'wis')
         wisglobals.resendfinishtime = cfg.getvalue('resendfinishtime', '18:00', 'wis')
-        wisglobals.resendinterval = int(cfg.getvalue('resendinterval', '5', 'wis'))
+        wisglobals.resendinterval = int(cfg.getvalue('resendinterval', '30', 'wis'))
 
         # check if ssl is enabled
         wisglobals.sslenabled = cfg.getvalue('sslenabled', None, 'wis')
