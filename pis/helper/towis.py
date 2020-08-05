@@ -71,6 +71,7 @@ class WIS(object):
                 data['routingid'] = modem['routingid']
                 data['account_balance'] = modem['account_balance']
                 data['sms_limit'] = modem['sms_limit']
+                data['sim_blocked'] = modem['sim_blocked']
 
                 httpcode = WIS.loopwis(data)
 

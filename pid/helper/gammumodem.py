@@ -16,6 +16,7 @@
 import time
 import gammu
 import re
+from os import path
 from common import smsgwglobals
 import pidglobals
 
@@ -103,8 +104,35 @@ class USBModem(object):
             ussd_matches = re.search(ussd_regex, ussd_reply["Text"])
             if ussd_matches is not None:
                 ussd_status = ussd_matches.group(1)
-
         return ussd_status
+
+
+    def check_sim_blocked(self, modem):
+        # Send sms to fake number
+        self.send_SMS("TEST_BLOCK", "3812345678910")
+
+        abspath = pidglobals.abspath
+        gammulogfile = modem["logfile"] if modem.get("logfile") else pidglobals.abspath +  "/logs/modem_" + modem["modemid"] + ".log"
+        with open (gammulogfile, 'r') as fd:
+            gammulog_lines = fd.readlines()
+
+        blocked_regex = ".*CMS Error 8:.*"
+        active_regex = ".*CMS Error 69:.*"
+        blocked = "N/A"
+        for logline in gammulog_lines:
+            blocked_match = re.search(blocked_regex, logline)
+            active_match = re.search(active_regex, logline)
+
+            if blocked_match is not None:
+                blocked = "Yes"
+            if active_match is not None:
+                blocked = "No"
+
+        smsgwglobals.pidlogger.debug("MODEM: SIM card (IMSI: " + modem["imsi"] + ") inside Modem #" + modem["modemid"] +
+                                     " blocked status '" +
+                                     blocked + "' ")
+
+        return blocked
 
     def set_pin(self, pin):
         # Check if PIN is needed

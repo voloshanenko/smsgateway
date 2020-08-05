@@ -48,6 +48,7 @@ class Database(object):
                  "wisid TEXT, " +
                  "modemid TEXT, " +
                  "regex TEXT, " +
+                 "sim_blocked TEXT, " +
                  "sms_count INTEGER, " +
                  "sms_limit INTEGER, " +
                  "account_balance TEXT, " +
@@ -72,7 +73,8 @@ class Database(object):
                      "sms_limit, " +
                      "account_balance, " +
                      "imsi, " +
-                     "modemname " +
+                     "modemname, " +
+                     "sim_blocked " +
                      "FROM routing")
         else:
             query = ("SELECT " +
@@ -87,6 +89,7 @@ class Database(object):
                     "wisurl, " +
                     "pisurl, " +
                     "modemname, " +
+                    "sim_blocked, " +
                     "routingid, " +
                     "obsolete, " +
                     "changed " +
@@ -178,8 +181,8 @@ class Database(object):
         """
         query = ("INSERT OR REPLACE INTO routing " +
                  "(wisid, modemid, regex, sms_count, sms_limit, account_balance, imsi, lbfactor, wisurl, " +
-                 "pisurl, obsolete, modemname, routingid, changed) " +
-                 "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) ")
+                 "pisurl, obsolete, modemname, sim_blocked, routingid, changed) " +
+                 "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) ")
 
         # read sms_count if exist
         db = database.Database()
@@ -202,6 +205,7 @@ class Database(object):
                                          " :pisurl: " + route["pisurl"] +
                                          " :obsolete: " + str(route["obsolete"]) +
                                          " :modemname: " + route["modemname"] +
+                                         " :sim_blocked: " + route["sim_blocked"] +
                                          " :routingid: " + route["routingid"] +
                                          " :changed: " + str(changed))
             rdblock.acquire()
@@ -217,6 +221,7 @@ class Database(object):
                                      route["pisurl"],
                                      route["obsolete"],
                                      route["modemname"],
+                                     route["sim_blocked"],
                                      route["routingid"],
                                      changed))
             self.con.commit()

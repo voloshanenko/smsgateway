@@ -201,6 +201,10 @@ class Modem(object):
         # for each modemid persist the object and the modemn pidglobals
         if usbmodem.get_status():
             modem['imsi'] = usbmodem.get_sim_imsi()
+
+            #Check if SIM blocked by cell operator
+            modem['sim_blocked'] = usbmodem.check_sim_blocked(modem)
+
             if "block_incoming_calls" in modem and modem["block_incoming_calls"]:
                 # Block all incoming calls
                 usbmodem.process_ussd("*35*0000#")
@@ -229,6 +233,7 @@ class Modem(object):
     @staticmethod
     def generate_gammu_config(modem):
         abspath = path.abspath(path.join(path.dirname(__file__), path.pardir))
+        pidglobals.abspath = abspath
         gammu_config_path = abspath + "/conf/modem_" + modem['modemid'] + ".conf"
         gammu_section = ""
         config = configparser.ConfigParser()
@@ -547,7 +552,7 @@ class Pid(object):
                     # leave while loop
                     # no connection to modem found!
                     sleep(60)
-                    smsgwglobals.pidlogger.debug(pidglobals.pidid + ": Sleep 2 minutes before shutdown..." )
+                    smsgwglobals.pidlogger.debug(pidglobals.pidid + ": Sleep 1 minutes before shutdown..." )
                     break
 
 
