@@ -67,7 +67,7 @@ class Database(object):
 
         # delete sms older than configured timetoleave dbttl
         # default is 90 days in seconds
-        dbttl = int(self.__smsconfig.getvalue('dbttl', 7776000, 'db'))
+        dbttl = int(self.__smsconfig.getvalue('dbttl', 315569520, 'db'))
         self.delete_old_sms(dbttl)
 
     # Destructor (called with "del <Databaseobj>"

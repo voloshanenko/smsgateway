@@ -39,7 +39,7 @@ class Watchdog_Scheduler():
         smsgwglobals.wislogger.debug("SCHEDULER: starting")
         self.scheduler = BackgroundScheduler()
         self.scheduler.start()
-        smsgwglobals.wislogger.debug("SCHEDULER: REPROCESS_SMS job starting. Interval: " + wisglobals.resendinterval + " minutes")
+        smsgwglobals.wislogger.debug("SCHEDULER: REPROCESS_SMS job starting. Interval: " + str(wisglobals.resendinterval) + " minutes")
         self.scheduler.add_job(self.reprocess_sms, 'interval', minutes = wisglobals.resendinterval)
 
     def reprocess_sms(self):

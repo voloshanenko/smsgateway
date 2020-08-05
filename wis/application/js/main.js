@@ -168,29 +168,43 @@ function sendSms() {
     // Split each number per line, remove ; and remove empty elements if any
     mobiles_array_final = mobiles.split("\n").map(n => n.replace(";", "").trim()).filter(n => n);
 
-    mobiles_array_final.forEach(function (mobnum) {
-        sendsms_towis(appid, mobnum, content)
-    });
-
-    alert("All SMS sent to the backend. Please check SMS status in few mins!")
+    sendsms_towis(appid, mobiles_array_final, content)
 }
 
-function sendsms_towis(appid, mobile, content){
+function custom_alert( message, title ) {
+    if ( !title )
+        title = 'Alert';
+
+    if ( !message )
+        message = 'No Message to Display.';
+
+    return $("<div class='dialog' title='" + title + "'><p>" + message + "</p></div>")
+            .dialog({
+                title: title,
+                resizable: false,
+                modal: true
+            });
+}
+
+function sendsms_towis(appid, mobiles, content){
     data = {
         appid: appid,
-        mobile: mobile,
+        mobile: mobiles,
         content: content
     }
     json_data = JSON.stringify(data)
 
     $.postJSON('/sendsms', json_data).done(function(data) {
-        success_message = "SMS added to the queue. ID: " + data["smsid"]
+        //var json = JSON.parse(json_data);
+        //var MobilesLen = Object.keys(json.mobile[0]).length;
+        //success_message = MobilesLen + " SMS added to the queue"
+        success_message = "ALL SMS added to the queue"
+        title = "SENT OK!"
         showToastr("success", success_message);
+        custom_alert(success_message, title)
     }).fail(function(data){
-        if (data.status == 404){
-            error_message = "Route to send SMS not availbale! Check modems and limits!";
-            showToastr("error", error_message);
-        }
+        error_message = "Can't send sms! Check modems and limits! ERROR_CODE: " + data.status;
+        showToastr("error", error_message);
     });
 }
 

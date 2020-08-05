@@ -381,38 +381,42 @@ class Root(object):
             self.triggerwatchdog()
             return resp
 
-        priority = 1
-        if 'priority' in cherrypy.request.params:
-            priority = int(json_data.get('priority'))
+        mobile_array = isinstance(json_data.get('mobile'), list)
+        if not mobile_array:
+            mobile_numbers = [json_data.get('mobile')]
+        else:
+            mobile_numbers = json_data.get('mobile')
 
-        # this is used for parameter extraction
-        # Create sms data object and make sure that it has a smsid
-        sms_uuid = str(uuid.uuid1())
-        sms = Smstransfer(content=json_data.get('content'),
-                          targetnr=json_data.get('mobile'),
-                          priority=priority,
-                          appid=json_data.get('appid'),
-                          sourceip=cherrypy.request.headers.get('Remote-Addr'),
-                          xforwardedfor=cherrypy.request.headers.get('X-Forwarded-For'),
-                          smsid=sms_uuid)
+        for targetnr in mobile_numbers:
+            priority = 1
+            if 'priority' in cherrypy.request.params:
+                priority = int(json.get('priority'))
+            # this is used for parameter extraction
+            # Create sms data object and make sure that it has a smsid
+            sms_uuid = str(uuid.uuid1())
+            sms = Smstransfer(content=json_data.get('content'),
+                              targetnr=targetnr,
+                              priority=priority,
+                              appid=json_data.get('appid'),
+                              sourceip=cherrypy.request.headers.get('Remote-Addr'),
+                              xforwardedfor=cherrypy.request.headers.get('X-Forwarded-For'),
+                              smsid=sms_uuid)
 
-        smsgwglobals.wislogger.debug("WIS: sendsms interface " + str(sms.getjson()))
+            smsgwglobals.wislogger.debug("WIS: sendsms interface " + str(sms.getjson()))
 
-        # process sms to insert it into database
-        try:
-            Helper.processsms(sms)
-            smsid = sms.smstransfer["sms"]["smsid"]
-            SMS_QUEUE.put(smsid)
-        except apperror.NoRoutesFoundError:
-            cherrypy.response.status = 404
-            resp["message"] = ":route for send sms not found"
+            # process sms to insert it into database
+            try:
+                Helper.processsms(sms)
+                smsid = sms.smstransfer["sms"]["smsid"]
+                SMS_QUEUE.put(smsid)
+            except apperror.NoRoutesFoundError:
+                self.triggerwatchdog()
+                pass
+
+            cherrypy.response.status = 200
+            resp["message"] = ":sms added to the queue successfully"
             self.triggerwatchdog()
-            return resp
 
-        cherrypy.response.status = 200
-        resp["message"] = ":sms added to the queue successfully"
-        resp["smsid"] = sms_uuid
-        self.triggerwatchdog()
         return resp
 
 
@@ -442,7 +446,7 @@ class Wisserver(object):
         wisglobals.wisid = cfg.getvalue('wisid', 'nowisid', 'wis')
         wisglobals.wisipaddress = cfg.getvalue('ipaddress', '127.0.0.1', 'wis')
         wisglobals.wisport = cfg.getvalue('port', '7777', 'wis')
-        wisglobals.cleanupseconds = cfg.getvalue('cleanupseconds', '86400', 'wis')
+        wisglobals.cleanupseconds = cfg.getvalue('cleanupseconds', '315569520', 'wis')
 
         wisglobals.validusernameregex = cfg.getvalue('validusernameregex', '([^a-zA-Z0-9])', 'wis')
         wisglobals.validusernamelength = cfg.getvalue('validusernamelength', 30, 'wis')
@@ -502,6 +506,10 @@ class Wisserver(object):
         cherrypy.config.update({'server.socket_port':
                                 int(wisglobals.wisport)})
         cherrypy.tree.mount(StatsLogstash(), '/api/stats/logstash', {'/': {'request.dispatch': cherrypy.dispatch.MethodDispatcher()}})
+
+        # Start scheduler for sms resending and other maintenance operations
+        Watchdog_Scheduler()
+
         cherrypy.quickstart(Root(), '/',
                             'wis-web.conf')
 
@@ -572,9 +580,6 @@ def main(argv):
 
     wisserver = Wisserver()
     wisserver.run()
-
-    # Start scheduler for sms resending and other maintenance operations
-    Watchdog_Scheduler()
 
 # Called when running from command line
 if __name__ == '__main__':
