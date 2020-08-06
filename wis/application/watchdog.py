@@ -154,18 +154,19 @@ class Watchdog_Route(threading.Thread):
                 status_code = f.read()
 
                 if int(status_code) == 1:
-                    if smstrans.smsdict["status"] == 0:
-                        smstrans.smsdict["status"] = 1
-                        smsgwglobals.wislogger.debug("WATCHDOG [route: " + str(self.routingid) + "] SEND direct:" + str(smstrans.smsdict))
-                    else:
+                    if smstrans.smsdict["status"] == -1:
                         smstrans.smsdict["status"] = 101
                         smsgwglobals.wislogger.debug("WATCHDOG [route: " + str(self.routingid) + "] SEND deligated:" + str(smstrans.smsdict))
+                    else:
+                        smstrans.smsdict["status"] = 1
+                        smsgwglobals.wislogger.debug("WATCHDOG [route: " + str(self.routingid) + "] SEND direct:" + str(smstrans.smsdict))
                     smsgwglobals.wislogger.debug("WATCHDOG [route: " + str(self.routingid) + "] SEND Update DB SUCCESS:" + str(smstrans.smsdict))
                     smstrans.updatedb()
-                elif int(status_code) == 2000 or int(status_code) == 31 or int(status_code) == 27:
+                elif int(status_code) == 2000 or int(status_code) == 31 or int(status_code) == 27 or int(status_code) == 69:
                     # PIS doesn't have modem endpoint - reprocess SMS and choose different route) - Error 2000
                     # Modem fail - reprocess SMS and choose different route) - Error 31 (can't read SMSC nummber, 99.99% - we just lost connection)
                     # Modem fail - reprocess SMS and choose different route) - Error 27 ( no money or SIM card blocked)
+                    # Modem fail - reprocess SMS and choose different route) - Error 69 (can't read SMSC nummber, 99.99% - we just lost connection)
                     # BUT use same smsid (after new route will be choosed it will decrease sms_count on route (IMSI)
                     smsgwglobals.wislogger.debug("WATCHDOG [route: " + str(self.routingid) + "] PIS can't reach PID: " + str(smstrans.smsdict))
                     try:
@@ -187,16 +188,16 @@ class Watchdog_Route(threading.Thread):
                     smstrans.updatedb()
 
         except urllib.error.URLError as e:
-            if smstrans.smsdict["status"] == 0:
-                smstrans.smsdict["status"] = 200
-            else:
+            if smstrans.smsdict["status"] == -1:
                 smstrans.smsdict["status"] = 300
+            else:
+                smstrans.smsdict["status"] = 200
 
             smsgwglobals.wislogger.debug("WATCHDOG [route: " + str(self.routingid) + "] SEND EXCEPTION " + str(smstrans.smsdict))
             smstrans.updatedb()
             # set SMS to not send!!!
             smsgwglobals.wislogger.debug(e)
-            smsgwglobals.wislogger.debug("WATCHDOG [route: " + str(self.routingid) + "] SEND Get peers NOTOK")
+            smsgwglobals.wislogger.debug("WA3TCHDOG [route: " + str(self.routingid) + "] SEND Get peers NOTOK")
 
             # On 500 error - (probably PID/route died - try to reprocess sms)
             try:
@@ -340,9 +341,12 @@ class Watchdog(threading.Thread):
                 if not smsen:
                     smsgwglobals.wislogger.debug("WATCHDOG: " +
                                              "no SMS with ID: " + sms_id + " in DB")
-                    return
+                    # Re run processing to make sure that queue empty
+                    self.process()
             except error.DatabaseError as e:
                 smsgwglobals.wislogger.debug(e.message)
+                # Re run processing to make sure that queue empty
+                self.process()
 
             # we have sms, just process
             sms = smsen[0]
@@ -351,25 +355,11 @@ class Watchdog(threading.Thread):
             # create smstrans object for easy handling
             smstrans = Smstransfer(**sms)
 
-            # check if we have routes
-            # if we have no routes, set error code and
-            # continue with the next sms
-            routes = wisglobals.rdb.read_routing()
-            if routes is None or len(routes) == 0:
-                smstrans.smsdict["statustime"] = datetime.utcnow()
-                smstrans.smsdict["status"] = 100
-                smsgwglobals.wislogger.debug("WATCHDOG: NO routes to process SMS: " + str(smstrans.smsdict))
-                smstrans.updatedb()
-                return
-
             # check if modemid exists in routing
-            route = wisglobals.rdb.read_routing(
-                smstrans.smsdict["modemid"])
+            route = wisglobals.rdb.read_routing(smstrans.smsdict["modemid"])
             if route is None or len(route) == 0:
-                smsgwglobals.wislogger.debug("WATCHDOG: " +
-                                              " ALERT ROUTE LOST")
+                smsgwglobals.wislogger.debug("WATCHDOG: ALERT ROUTE LOST")
                 # try to reprocess route
-                smstrans.smsdict["status"] = 106
                 smstrans.updatedb()
                 try:
                     Helper.processsms(smstrans)
@@ -384,7 +374,7 @@ class Watchdog(threading.Thread):
                 # therefore give the sms to the PIS
                 # this is a bad hack to ignore obsolete routes
                 # this may lead to an error, fixme
-                route[:] = [d for d in route if d['obsolete'] < 13]
+                route[:] = [d for d in route if d['obsolete'] < 1]
                 smsgwglobals.wislogger.debug("WATCHDOG: process with route %s ", str(route))
                 smsgwglobals.wislogger.debug("WATCHDOG: Sending to PIS %s", str(sms))
                 # only continue if route contains data
