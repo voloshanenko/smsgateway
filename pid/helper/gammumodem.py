@@ -89,13 +89,18 @@ class USBModem(object):
 
         USSD_REPLY = None
         smsgwglobals.pidlogger.info("Calling USSD code: " + ussd_code)
-        self.__statemachine.DialService(ussd_code)
-        loops = 0
-        while not USSD_REPLY and loops < 20:
-            self.__statemachine.ReadDevice()
-            loops += 1
+        try:
+            self.__statemachine.DialService(ussd_code)
+            loops = 0
+            while not USSD_REPLY and loops < 20:
+                self.__statemachine.ReadDevice()
+                loops += 1
 
-        smsgwglobals.pidlogger.info("Received USSD answer " + str(USSD_REPLY) + " for USSD code: " + ussd_code)
+            smsgwglobals.pidlogger.info("Received USSD answer " + str(USSD_REPLY) + " for USSD code: " + ussd_code)
+        except Exception as e:
+            # We fail on USS, sent nothing
+            smsgwglobals.pidlogger.info("Received ERROR during dial for USSD code: " + ussd_code)
+            pass
         return USSD_REPLY
 
     def parse_ussd(self, ussd_reply, ussd_regex):
@@ -116,17 +121,19 @@ class USBModem(object):
         with open (gammulogfile, 'r') as fd:
             gammulog_lines = fd.readlines()
 
-        blocked_regex = ".*CMS Error 8:.*"
-        active_regex = ".*CMS Error 69:.*"
+        blocked_regex_list = [".*CMS Error 8:.*"]
+        active_regex_list = [".*CMS Error 69:.*", ".*CMS Error 21:.*"]
         blocked = "N/A"
         for logline in gammulog_lines:
-            blocked_match = re.search(blocked_regex, logline)
-            active_match = re.search(active_regex, logline)
+            for blocked_regex in blocked_regex_list:
+                blocked_match = re.search(blocked_regex, logline)
+                if blocked_match is not None:
+                    blocked = "Yes"
 
-            if blocked_match is not None:
-                blocked = "Yes"
-            if active_match is not None:
-                blocked = "No"
+            for active_regex in active_regex_list:
+                active_match = re.search(active_regex, logline)
+                if active_match is not None:
+                    blocked = "No"
 
         smsgwglobals.pidlogger.debug("MODEM: SIM card (IMSI: " + modem["imsi"] + ") inside Modem #" + modem["modemid"] +
                                      " blocked status '" +

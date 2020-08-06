@@ -317,6 +317,32 @@ function showToastr(toastr_type, toastr_message){
     toastr[toastr_type](toastr_message)
 };
 
+function isANumber(str){
+    return !/\D/.test(str);
+}
+
+function restartModem(imsi) {
+    if (isANumber(imsi.toString()) && imsi.toString().length == 15){
+        data = {
+            imsi: imsi.toString(),
+        }
+        json_data = JSON.stringify(data)
+        $.postJSON('/restartmodem', json_data).done(function(data) {
+            success_message = "Modem restart initiated. Check status later on"
+            title = "RESTART OK!"
+            showToastr("success", success_message);
+            custom_alert(success_message, title)
+        }).fail(function(data){
+            error_message = "Can't restart modem! ERROR_CODE: " + data.status;
+            showToastr("error", error_message);
+        });
+    }
+    else {
+        warning_message = "IMSI can be only 15 digits string!"
+        showToastr("warning", warning_message)
+    }
+}
+
 function getRouting() {
     jQuery('div.routing').load('ajax/getrouting', function() {
         if (jQuery("#sessiontimeout").length) {
@@ -332,12 +358,20 @@ function getRouting() {
             sortList: [[2, 0], [8, 1]],
             theme: 'blue'
         });
+
+        //$('#routingTable tr').append('<td>new</td>')
+        $('#routingTable').find('tr').each(function(){
+            $(this).find('th').eq(-1).after('<th>maintenance</th>');
+            sim_imsi = $(this).find("td:nth-child(2)").html()
+            $(this).find('td').eq(-1).after('<td><button class="btn" type="button" onclick="restartModem(' + sim_imsi + ')">Restart</button></td>');
+        });
+
         var sent_sms = 0;
         var sms_limit = 0;
-        $("#routingTable").find("td:nth-child(5)").each(function () {
+        $("#routingTable").find("td:nth-child(6)").each(function () {
             sent_sms += parseInt($(this).html());
         });
-        $("#routingTable").find("td:nth-child(6)").each(function () {
+        $("#routingTable").find("td:nth-child(7)").each(function () {
             sms_limit += parseInt($(this).html());
         });
         availbale_sms = parseInt(sms_limit - sent_sms);
