@@ -387,7 +387,39 @@ class Root(object):
         else:
             mobile_numbers = json_data.get('mobile')
 
+        initial_count = len(mobile_numbers)
+        mobile_numbers_to_send = []
+
+        invalid_messages = []
         for targetnr in mobile_numbers:
+            print(targetnr)
+            digits_regex = '^\d{12}$'
+            digits_match = re.search(digits_regex, targetnr)
+            if digits_match is None:
+                msg = ":mobile number '" + targetnr + "' not valid. Should be 12 digits!"
+                invalid_messages.append(msg)
+            else:
+                allowed_prefix = False
+                for prefix in wisglobals.allowedmobileprefixes:
+                    prefix_regex = '^' + prefix + r'\d{7}$'
+                    print(prefix_regex)
+                    prefix_match = re.search(prefix_regex, targetnr)
+                    if prefix_match is not None:
+                        allowed_prefix = True
+                if not allowed_prefix:
+                    msg = ":mobile number '" + targetnr + "' not valid. Allowed prefixes: " + str(wisglobals.allowedmobileprefixes)
+                    invalid_messages.append(msg)
+                else:
+                    mobile_numbers_to_send.append(targetnr)
+
+        # All our numbers invalid
+        if initial_count == len(invalid_messages):
+            cherrypy.response.status = 422
+            resp["message"] = ", ".join(invalid_messages)
+            self.triggerwatchdog()
+            return resp
+
+        for targetnr in mobile_numbers_to_send:
             priority = 1
             if 'priority' in cherrypy.request.params:
                 priority = int(json.get('priority'))
@@ -413,9 +445,14 @@ class Root(object):
                 self.triggerwatchdog()
                 pass
 
-            cherrypy.response.status = 200
-            resp["message"] = ":sms added to the queue successfully"
-            self.triggerwatchdog()
+        cherrypy.response.status = 200
+        final_count = len(mobile_numbers_to_send)
+        success_message = ":" + str(final_count) + " sms added to the queue successfully"
+        if invalid_messages:
+            invalid_msg = ", ".join(invalid_messages)
+            success_message += ", " + invalid_msg
+        resp["message"] = success_message
+        self.triggerwatchdog()
 
         return resp
 
@@ -438,8 +475,7 @@ class Wisserver(object):
         readme = open(abspath + '/README.md', 'r')
         readmecontent = readme.read()
         version = re.compile(r"(?<=## Version)(.*v.\..*)", re.S).findall(readmecontent)
-        if version:
-            wisglobals.version = version[0].strip('\n')
+        wisglobals.version = version[0].strip('\n') if version else "version not specified"
 
         smsgwglobals.wislogger.debug("WIS: Version: " + str(wisglobals.version))
 
@@ -471,6 +507,10 @@ class Wisserver(object):
 
         # read pissendtimeout
         wisglobals.pissendtimeout = int(cfg.getvalue('pissendtimeout', '20', 'wis'))
+
+        # Read allowed mobile prefixes to process
+        mobile_prefixes_raw = cfg.getvalue('allowedmobileprefixes', '.*', 'wis').split(",")
+        wisglobals.allowedmobileprefixes = set(sorted([ d.strip() for d in mobile_prefixes_raw if d != ""]))
 
         # Read allowed timeframe for sending start/finish time
         wisglobals.allowedstarttime = cfg.getvalue('allowedstarttime', '01:00', 'wis')

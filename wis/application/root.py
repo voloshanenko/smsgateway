@@ -61,8 +61,9 @@ class ViewMain(Htmlpage):
         ''')
         str_list.append('<hr>')
         str_list.append('''
+        <input type="hidden" id="mobile_prefixes" value="''' + ",".join(wisglobals.allowedmobileprefixes) + '''">
         <form id="sendsms">
-        <table>
+        <table id="sendsms">
             <tbody>
                 <tr>
                     <td>Marketing company ID:</td>
@@ -70,12 +71,23 @@ class ViewMain(Htmlpage):
                 </tr>
                 <tr>
                     <td>Send to:</td>
-                    <td><textarea id="mobiles" name="mobiles" rows="10" cols="50"></textarea></td>
+                    <td>
+                        <textarea id="mobiles" name="mobiles" rows="10" cols="20"></textarea>
+                        <textarea id="mobiles_bad" name="mobiles_bad" rows="10" cols="20" disabled></textarea>
+                    </td>
                 </tr>
                 <tr>
-                    <td>Numbers of recepients: </td>
+                    <td>Numbers of mobiles: </td>
                     <td><label id="mobiles_count">0</label></td>
                 </tr>
+                <tr>
+                    <td>Good mobiles: </td>
+                    <td><label id="mobiles_count_good">0</label></td>
+                </tr>
+                <tr>
+                    <td>Bad mobiles: </td>
+                    <td><label id="mobiles_count_bad">0</label></td>
+                </tr>                                
                 <tr>
                     <td>SMS:</td>
                     <td><textarea id="content" name="content" rows="10" cols="50"></textarea></>

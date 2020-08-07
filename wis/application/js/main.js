@@ -52,8 +52,12 @@ window.onload = function() {
 
         oldVal = currentVal;
 
-        var count = countLine(this)
-        $("#mobiles_count").text(count)
+        var filteredData  = filterMobiles(this)
+
+        $("#mobiles_count").text(filteredData[0] + filteredData[1])
+        $("#mobiles_count_good").text(filteredData[0])
+        $("#mobiles_count_bad").text(filteredData[1])
+        $("#mobiles_bad").text(filteredData[3].join("\n"))
     });
 
     $("#content").on("change keyup paste", function() {
@@ -151,24 +155,20 @@ function sendSms() {
         location.reload();
     }
     appid = $( "#appid" ).val()
-    mobiles = $( "#mobiles" ).val()
     content = $( "#content" ).val()
 
-    if (mobiles == ""){
+    var filteredData  = filterMobiles($("#mobiles"))
+    if (filteredData[2].length){
+        if (content == ""){
+            warning_message = "You need to type at least 1 symbol of sms to send!";
+            showToastr("warning", warning_message);
+        }else{
+            sendsms_towis(appid, filteredData[2], content)
+        }
+    }else{
         warning_message = "You need to type at least 1 mobile number to send sms TO!";
         showToastr("warning", warning_message);
     }
-
-    if (content == ""){
-        warning_message = "You need to type at least 1 symbol of sms to send!";
-        showToastr("warning", warning_message);
-        return;
-    }
-
-    // Split each number per line, remove ; and remove empty elements if any
-    mobiles_array_final = mobiles.split("\n").map(n => n.replace(";", "").trim()).filter(n => n);
-
-    sendsms_towis(appid, mobiles_array_final, content)
 }
 
 function custom_alert( message, title ) {
@@ -195,33 +195,58 @@ function sendsms_towis(appid, mobiles, content){
     json_data = JSON.stringify(data)
 
     $.postJSON('/sendsms', json_data).done(function(data) {
-        //var json = JSON.parse(json_data);
-        //var MobilesLen = Object.keys(json.mobile[0]).length;
-        //success_message = MobilesLen + " SMS added to the queue"
-        success_message = "ALL SMS added to the queue"
+        response_message = data.message
+        if (response_message.match('.*not valid.*')){
+            toast_type = "warning"
+        }else{
+            toast_type = "success"
+        }
         title = "SENT OK!"
-        showToastr("success", success_message);
-        custom_alert(success_message, title)
+        showToastr(toast_type, response_message);
+        custom_alert(response_message, title)
     }).fail(function(data){
-        error_message = "Can't send sms! Check modems and limits! ERROR_CODE: " + data.status;
+        response_message = data.responseJSON.message
+        error_message = "Can't send sms! ERROR_CODE: " + data.status + ". ERROR_MESSAGE:" + response_message;
         showToastr("error", error_message);
     });
 }
 
-function countLine(element) {
+function filterMobiles(element) {
     var mobiles = $(element).val();
     // Split each number per line, remove ; and remove empty elements if any
     mobiles_array_final = mobiles.split("\n").map(n => n.replace(";", "").trim()).filter(n => n);
 
-    var count = 0
-    mobiles_array_final.forEach(function (mobnum) {
-        count += 1;
-    });
-    if (count){
-        return count;
-    }else {
-        return 0;
+    regex_list = $('#mobile_prefixes').val().split(",").filter(n => n);
+
+    var count_good = 0
+    var count_bad = 0
+    mobiles_array_good = []
+    mobiles_array_bad = []
+    if (! regex_list){
+        regex_list = [".*"]
     }
+
+    mobiles_array_final.forEach(function (mobnum) {
+        good = false
+        if (mobnum.match(/^\d{12}$/)){
+            for (rx in regex_list){
+                regex = new RegExp("^" + regex_list[rx] + "\\d{7}$", 'gi')
+                if (mobnum.match(regex)){
+                    good = true
+                }
+            }
+        }
+        if (good){
+            count_good +=1
+            mobiles_array_good.push(mobnum)
+        }else{
+            count_bad += 1;
+            mobiles_array_bad.push(mobnum)
+        }
+
+    });
+    return [count_good, count_bad, mobiles_array_good, mobiles_array_bad]
+
 }
 
 jQuery["postJSON"] = function( url, data, callback ) {
