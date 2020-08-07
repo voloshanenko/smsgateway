@@ -230,7 +230,7 @@ class Watchdog_Route(threading.Thread):
         try:
             # Each modem in any case will be sending SMS in sequantal mode. So sleep a bit
             # Re run processing to make sure that queue empty
-            sleep_time = randrange(5,10)
+            sleep_time = randrange(27,89)
             sleep(sleep_time)
             sms = self.queue.get(block=False)
         except Empty:
