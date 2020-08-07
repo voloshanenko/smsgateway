@@ -384,23 +384,25 @@ function getRouting() {
             theme: 'blue'
         });
 
-        //$('#routingTable tr').append('<td>new</td>')
+        var sent_sms = 0;
+        var sms_limit = 0;
+        var total_sent_sms = 0;
+
         $('#routingTable').find('tr').each(function(){
             $(this).find('th').eq(-1).after('<th>maintenance</th>');
             sim_imsi = $(this).find("td:nth-child(2)").html()
             $(this).find('td').eq(-1).after('<td><button class="btn" type="button" onclick="restartModem(' + sim_imsi + ')">Restart</button></td>');
+            blocked = $(this).find('td').eq(5).html()
+            if (blocked == "No"){
+                sent_sms += parseInt($(this).find('td').eq(6).html());
+                sms_limit += parseInt($(this).find('td').eq(7).html());
+            }
+            total_sent_sms += parseInt($(this).find('td').eq(7).html())
         });
 
-        var sent_sms = 0;
-        var sms_limit = 0;
-        $("#routingTable").find("td:nth-child(6)").each(function () {
-            sent_sms += parseInt($(this).html());
-        });
-        $("#routingTable").find("td:nth-child(7)").each(function () {
-            sms_limit += parseInt($(this).html());
-        });
         availbale_sms = parseInt(sms_limit - sent_sms);
         $("#available_sms").text(availbale_sms);
+        $("#sent_sms").text(total_sent_sms);
     });
 
     getStatus();

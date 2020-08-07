@@ -56,6 +56,10 @@ class ViewMain(Htmlpage):
                     <td><b>Available SMS to send: </b></td>
                     <td><label id="available_sms"></label></td>
                 </tr>
+                <tr>
+                    <td><b>Sent SMS: </b></td>
+                    <td><label id="sent_sms"></label></td>
+                </tr>
             </tbody>
         </table>                    
         ''')
@@ -247,7 +251,7 @@ class Ajax():
         rows = wisglobals.rdb.read_routing(web=True)
 
         if len(rows) == 0:
-            return "No routes - press button to reload!"
+            return "No routes available!"
 
         if len(rows) > 0:
             od = collections.OrderedDict(sorted(rows[0].items()))
