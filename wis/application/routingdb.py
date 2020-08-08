@@ -346,7 +346,7 @@ class Database(object):
             smsgwglobals.wislogger.debug("ROUTER " + str(older))
 
             query = ("UPDATE routing SET " +
-                     "obsolete = obsolete + 1 " +
+                     "obsolete = obsolete + 2 " +
                      "WHERE changed < ?"
                      )
 

@@ -14,13 +14,15 @@
 # limitations under the License.
 
 import cherrypy
+import socket
 import json
 import os
 import sys
 sys.path.insert(0, "..")
 import re
 import uuid
-from queue import Queue, Empty
+from queue import Queue
+import urllib.request
 
 from common import error
 from common.config import SmsConfig
@@ -356,6 +358,67 @@ class Root(object):
 
             except error.DatabaseError as e:
                 smsgwglobals.wislogger.debug(e.message)
+
+    @cherrypy.expose
+    @cherrypy.tools.allow(methods=['POST'])
+    @cherrypy.tools.accept(media='application/json')
+    @cherrypy.tools.json_out()
+    @cherrypy.tools.json_in()
+    def restartmodem(self, **params):
+        json_data = cherrypy.request.json
+
+        # all parameters to lower case
+        json_data = dict([(x[0].lower(), x[1]) for x in json_data.items()])
+
+        # check if parameters are given
+        resp = {}
+        if not json_data.get("imsi"):
+            cherrypy.response.status = 422
+            resp["message"] = ":imsi attribute not set"
+            return resp
+
+        imsi = json_data.get("imsi")
+        route = [ r for r in wisglobals.rdb.read_routing() if r["imsi"] == imsi and r["obsolete"] < 1]
+
+        if route:
+            modemid = route[0]["modemid"]
+            db = Database()
+            sms_in_progress = db.read_sms(status=0, modemid=modemid)
+            if sms_in_progress:
+                cherrypy.response.status = 409
+                resp["message"] = ":imsi '" + imsi + "'(Modem #" + modemid + ") BUSY now sending SMS!"
+                return resp
+            else:
+                try:
+                    jdata = json.dumps({ "modemid": modemid})
+                    data = GlobalHelper.encodeAES(jdata)
+                    request = urllib.request.Request(route[0]["pisurl"] + "/restartmodem")
+                    request.add_header("Content-Type",
+                                        "application/json;charset=utf-8")
+                    smsgwglobals.wislogger.debug("WIS: restartmodem '" + route[0]["modemid"] +"' VIA " +
+                                                 route[0]["pisurl"] +
+                                                 "/restartmodem")
+
+                    f = urllib.request.urlopen(request, data, timeout=10)
+                    smsgwglobals.wislogger.debug("WIS modem restart (Modem #" + modemid + ") send to PIS returncode:" + str(f.getcode()))
+                    # if all is OK set the sms status to SENT
+                    if f.getcode() == 200:
+                        cherrypy.response.status = 200
+                        resp["message"] = ":imsi '" + imsi + "'(Modem #" + modemid + ") BUSY now sending SMS!"
+                        return resp
+                except urllib.error.URLError as e:
+                    cherrypy.response.status = 500
+                    resp["message"] = ":imsi '" + imsi + "'(Modem #" + modemid + ") can't be restarted now!"
+                    return resp
+                except socket.timeout as e:
+                    cherrypy.response.status = 500
+                    resp["message"] = ":imsi '" + imsi + "'(Modem #" + modemid + ") can't be restarted now!"
+                    return resp
+
+        else:
+            cherrypy.response.status = 404
+            resp["message"] = ":imsi '" + imsi + "' not found inside any active modem!"
+            return resp
 
     @cherrypy.expose
     @cherrypy.tools.allow(methods=['POST'])

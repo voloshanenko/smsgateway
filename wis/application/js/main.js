@@ -353,12 +353,13 @@ function restartModem(imsi) {
         }
         json_data = JSON.stringify(data)
         $.postJSON('/restartmodem', json_data).done(function(data) {
-            success_message = "Modem restart initiated. Check status later on"
+            warning_message = "Modem restart initiated. Check status later on"
             title = "RESTART OK!"
-            showToastr("success", success_message);
-            custom_alert(success_message, title)
+            showToastr("success", warning_message);
+            custom_alert(warning_message, title)
         }).fail(function(data){
-            error_message = "Can't restart modem! ERROR_CODE: " + data.status;
+            response_message = data.responseJSON.message
+            error_message = "Can't restart modem! ERROR_CODE: " + data.status + ". ERROR_MESSAGE:" + response_message;
             showToastr("error", error_message);
         });
     }
@@ -389,15 +390,20 @@ function getRouting() {
         var total_sent_sms = 0;
 
         $('#routingTable').find('tr').each(function(){
-            $(this).find('th').eq(-1).after('<th>maintenance</th>');
-            sim_imsi = $(this).find("td:nth-child(2)").html()
-            $(this).find('td').eq(-1).after('<td><button class="btn" type="button" onclick="restartModem(' + sim_imsi + ')">Restart</button></td>');
-            blocked = $(this).find('td').eq(5).html()
-            if (blocked == "No"){
-                sent_sms += parseInt($(this).find('td').eq(6).html());
-                sms_limit += parseInt($(this).find('td').eq(7).html());
+            if ($(this).find('th').eq(-1).html() != "maintenance"){
+                $(this).find('th').eq(-1).after('<th>maintenance</th>');
+                sim_imsi = $(this).find("td:nth-child(2)").html();
+                $(this).find('td').eq(-1).after('<td><button class="btn" type="button" onclick="restartModem(' + sim_imsi + ')">Restart</button></td>');
             }
-            total_sent_sms += parseInt($(this).find('td').eq(7).html())
+            blocked = $(this).find("td:nth-child(5)").html();
+            if (blocked == "No"){
+                sent_sms += parseInt($(this).find("td:nth-child(6)").html());
+                sms_limit += parseInt($(this).find("td:nth-child(7)").html());
+            }
+            sent_sms_modem = parseInt($(this).find("td:nth-child(6)").html());
+            if (sent_sms_modem){
+                total_sent_sms += sent_sms_modem;
+            }
         });
 
         availbale_sms = parseInt(sms_limit - sent_sms);

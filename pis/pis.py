@@ -124,6 +124,54 @@ class Root(object):
             return
 
     @cherrypy.expose
+    @cherrypy.tools.allow(methods=['POST'])
+    def restartmodem(self, **params):
+        """ json before encoding
+        {
+        "modemid":"00436762222222",
+        """
+        # for receiving restartmodem from WIS
+        cl = cherrypy.request.headers['Content-Length']
+        rawbody = cherrypy.request.body.read(int(cl))
+        # smsgwglobals.pislogger.debug("/sendsms: rawbody: " + str(rawbody))
+        plaintext = GlobalHelper.decodeAES(rawbody)
+
+        try:
+            data = json.loads(plaintext)
+            # adding action switch for message to PID
+            data['action'] = "restartmodem"
+            smsgwglobals.pislogger.debug("/restartmodem: dictionary: " +
+                                         str(data))
+
+        except Exception as e:
+            smsgwglobals.pislogger.warning("/restartmodem: Invalid data received! "
+                                           + str(e))
+            cherrypy.response.status = 400  # Bad Request
+            return
+
+        try:
+            address = PID.getclientaddress(data['modemid'])
+
+            if address:
+                # sending SMS to Pid
+                PID.sendtopid(address, data)
+            else:
+                smsgwglobals.pislogger.warning("/restartmodem: No PID for " +
+                                               "modem " +
+                                               data['modemid'] +
+                                               " found!")
+                # If no modem endpoint to send - set own status code
+                cherrypy.response.status = 404
+                return
+
+        except Exception as e:
+            smsgwglobals.pislogger.debug("/restartmodem: Internal Server "
+                                         "Error! " +
+                                         str(e))
+            cherrypy.response.status = 500  # Internal Server Error
+            return
+
+    @cherrypy.expose
     def ws(self, *channels):
         # Open WebSocket server for PID communication
         handler = cherrypy.request.ws_handler
