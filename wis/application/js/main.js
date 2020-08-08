@@ -355,7 +355,7 @@ function restartModem(imsi) {
         $.postJSON('/restartmodem', json_data).done(function(data) {
             warning_message = "Modem restart initiated. Check status later on"
             title = "RESTART OK!"
-            showToastr("success", warning_message);
+            showToastr("warning", warning_message);
             custom_alert(warning_message, title)
         }).fail(function(data){
             response_message = data.responseJSON.message

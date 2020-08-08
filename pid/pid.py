@@ -104,7 +104,7 @@ class PidWsClient(WebSocketClient):
             if "ERROR" in tosend['status']:
                 closingreason = "Modem ERROR while sending SMS!"
 
-                pidglobals.closingcode = 4005
+                pidglobals.closingcode = 4000
                 self.close(code=4000, reason=closingreason)
 
             # calculate difference time to last primary PIS check
@@ -140,8 +140,8 @@ class PidWsClient(WebSocketClient):
             if modem:
                 closingreason = "Modem RESTART requested!"
 
-                pidglobals.closingcode = 4000
-                self.close(code=4000, reason=closingreason)
+                pidglobals.closingcode = 4005
+                self.close(code=4005, reason=closingreason)
 
     def check_primpid(self):
         # Do a simple URL-check and denn close Websocket connection.
