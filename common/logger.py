@@ -15,6 +15,10 @@
 
 import logging
 import logging.handlers
+import os
+
+if os.getenv("PRODUCTION"):
+    logging.raiseExceptions = False
 
 import sys
 sys.path.insert(0, "..")

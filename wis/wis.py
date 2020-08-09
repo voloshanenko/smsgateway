@@ -23,6 +23,7 @@ import re
 import uuid
 from queue import Queue
 import urllib.request
+from datetime import datetime
 
 from common import error
 from common.config import SmsConfig
@@ -583,6 +584,9 @@ class Wisserver(object):
         wisglobals.resendstarttime = cfg.getvalue('resendstarttime', '09:00', 'wis')
         wisglobals.resendfinishtime = cfg.getvalue('resendfinishtime', '18:00', 'wis')
         wisglobals.resendinterval = int(cfg.getvalue('resendinterval', '30', 'wis'))
+
+        # Set own start time to use in resend flow
+        wisglobals.scriptstarttime = datetime.utcnow()
 
         # check if ssl is enabled
         wisglobals.sslenabled = cfg.getvalue('sslenabled', None, 'wis')

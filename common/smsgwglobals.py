@@ -14,6 +14,11 @@
 # limitations under the License.
 
 import logging
+import os
+
+if os.getenv("PRODUCTION"):
+    logging.raiseExceptions = False
+
 from common.logger import SmsLogger
 
 # initialize logger globally

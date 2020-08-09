@@ -47,6 +47,14 @@ class Watchdog_Scheduler():
             # Read SMS with statuses NoRoutes + NoPossibleRoutes
             smsen = self.db.read_sms(status=104)
             smsen = smsen + self.db.read_sms(status=105)
+
+            # Read and filter SMS with status 0 but statustime < our own start time
+            # IT can happen when wis failed and restarted - so definitely no sending happened
+            zero_status_sms = self.db.read_sms(status=0)
+            orphaned_sms = [sms for sms in zero_status_sms if datetime.strptime(sms["statustime"], '%Y-%m-%d %H:%M:%S.%f') < wisglobals.scriptstarttime]
+            if orphaned_sms:
+                smsen = smsen + orphaned_sms
+
             if smsen:
                 for sms in smsen:
                     smsgwglobals.wislogger.debug("REPROCESS_SMS job: processing: " + str(sms))
