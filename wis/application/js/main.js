@@ -382,7 +382,7 @@ function getRouting() {
                     sorter: 'customDate'
                 }
             },
-            sortList: [[4, 0], [8, 1]],
+            sortList: [[3, 0], [7, 1]],
             theme: 'blue'
         });
 
