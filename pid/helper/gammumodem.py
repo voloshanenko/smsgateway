@@ -69,6 +69,9 @@ class USBModem(object):
     def get_sim_imsi(self):
         return self.__statemachine.GetSIMIMSI()
 
+    def get_modem_imei(self):
+        return self.__statemachine.GetIMEI()
+
     def ussd_callback(self, state_machine, callback_type, data):
         global USSD_REPLY
         if callback_type != 'USSD':

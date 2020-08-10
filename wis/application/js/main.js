@@ -400,15 +400,15 @@ function getRouting() {
             }
             var last_td = $(this).find('td').eq(-1).html()
             if (last_td != undefined && ! last_td.match(/.*restartModem.*/)) {
-                sim_imsi = $(this).find("td:nth-child(2)").html();
+                sim_imsi = $(this).find("td:nth-child(3)").html();
                 $(this).find('td').eq(-1).after('<td><button class="btn" type="button" onclick="restartModem(' + sim_imsi + ')">Restart</button></td>');
             }
-            blocked = $(this).find("td:nth-child(4)").html();
+            blocked = $(this).find("td:nth-child(5)").html();
             if (blocked == "No"){
-                scheduled_sms += parseInt($(this).find("td:nth-child(6)").html());
-                sms_limit += parseInt($(this).find("td:nth-child(5)").html());
+                scheduled_sms += parseInt($(this).find("td:nth-child(7)").html());
+                sms_limit += parseInt($(this).find("td:nth-child(6)").html());
             }
-            sent_sms_modem = parseInt($(this).find("td:nth-child(6)").html());
+            sent_sms_modem = parseInt($(this).find("td:nth-child(8)").html());
             if (sent_sms_modem){
                 total_sent_sms += sent_sms_modem;
             }

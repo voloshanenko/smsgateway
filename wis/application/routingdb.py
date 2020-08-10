@@ -53,6 +53,7 @@ class Database(object):
                  "sms_limit INTEGER, " +
                  "account_balance TEXT, " +
                  "imsi TEXT, " +
+                 "imei, TEXT, " +
                  "lbfactor INTEGER, " +
                  "wisurl TEXT, " +
                  "pisurl TEXT, " +
@@ -73,6 +74,7 @@ class Database(object):
                      "sms_limit, " +
                      "account_balance, " +
                      "imsi, " +
+                     "imei, " +
                      "modemname, " +
                      "sim_blocked " +
                      "FROM routing")
@@ -85,6 +87,7 @@ class Database(object):
                     "sms_limit, " +
                     "account_balance, " +
                     "imsi, " +
+                    "imei, " +
                     "lbfactor, " +
                     "wisurl, " +
                     "pisurl, " +
@@ -173,6 +176,7 @@ class Database(object):
         sms_limit ... int-number of sms limit to sent via this route
         account_balance ... float-number of amount of money on SIM card
         imsi ... text-serving SIM card IMSI
+        imei ... text-serving modem IMEI
         lbfactor ... int-factor if different contingets
         wisurl ... text-url of wis
         obsolete ... route got flag for deletion
@@ -180,9 +184,9 @@ class Database(object):
         changed ... datetime.utcnow-when changed
         """
         query = ("INSERT OR REPLACE INTO routing " +
-                 "(wisid, modemid, regex, sms_count, sms_limit, account_balance, imsi, lbfactor, wisurl, " +
+                 "(wisid, modemid, regex, sms_count, sms_limit, account_balance, imsi, imei, lbfactor, wisurl, " +
                  "pisurl, obsolete, modemname, sim_blocked, routingid, changed) " +
-                 "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) ")
+                 "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) ")
 
         # read sms_count if exist
         db = database.Database()
@@ -200,6 +204,7 @@ class Database(object):
                                          " :sms_limit: " + str(route["sms_limit"]) +
                                          " :account_balance: " + str(route["account_balance"]) +
                                          " :imsi: " + route["imsi"] +
+                                         " :imei: " + route["imei"] +
                                          " :lbfactor: " + str(route["lbfactor"]) +
                                          " :wisurl: " + route["wisurl"] +
                                          " :pisurl: " + route["pisurl"] +
@@ -216,6 +221,7 @@ class Database(object):
                                      route["sms_limit"],
                                      route["account_balance"],
                                      route["imsi"],
+                                     route["imei"],
                                      route["lbfactor"],
                                      route["wisurl"],
                                      route["pisurl"],

@@ -209,6 +209,7 @@ class Modem(object):
         # for each modemid persist the object and the modemn pidglobals
         if usbmodem.get_status():
             modem['imsi'] = usbmodem.get_sim_imsi()
+            modem['imei'] = usbmodem.get_modem_imei()
 
             #Check if SIM blocked by cell operator
             modem['sim_blocked'] = usbmodem.check_sim_blocked(modem)

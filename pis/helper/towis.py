@@ -63,6 +63,7 @@ class WIS(object):
                 data['action'] = "register"
                 data['modemid'] = modem['modemid']
                 data['imsi'] = modem['imsi']
+                data['imei'] = modem['imei']
                 data['regex'] = modem['regex']
                 data['modemname'] = modem['modemname']
                 data['pisurl'] = pisglobals.pisurl
