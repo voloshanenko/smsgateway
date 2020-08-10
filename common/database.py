@@ -583,7 +583,7 @@ class Database(object):
             return sms
 
     # Read number of sms sent for last 24h per SIM IMSI in UKRAINE timezone
-    def read_sms_count_by_imsi(self, imsi):
+    def read_sms_count_by_imsi(self, imsi, real_sent = False):
 
         utc_timezone = pytz.timezone("UTC")
         ua_timezone = pytz.timezone("Europe/Kiev")
@@ -601,6 +601,10 @@ class Database(object):
                  "WHERE imsi = ? " +
                  "AND statustime BETWEEN ? AND ?"
                  )
+
+        # Return already sent sms, not scheduled
+        if real_sent:
+            query = query + " AND status = 1"
         try:
             result = self.__cur.execute(query, [ imsi, start, end])
         except Exception as e:

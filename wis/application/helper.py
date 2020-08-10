@@ -58,6 +58,10 @@ class Helper(object):
                     smsgwglobals.wislogger.debug("ROUTES empty!")
                     raise apperror.NoRoutesFoundError()
 
+                # If we received sms with fields modemid + imsi already inside - make sure we decrease sent_sms counter for this modem
+                #if sms.smsdict.get("modemid") and sms.smsdict.get("imsi"):
+                #    wisglobals.rdb.decrease_sms_count(sms.smsdict["modemid"])
+
                 # try to match routes, get possible routes
                 for route in routes:
                     match = re.search(route["regex"], sms.smsdict["targetnr"])

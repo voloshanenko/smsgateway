@@ -131,21 +131,22 @@ function getStatus() {
         if (jQuery("#sessiontimeout").length) {
             location.reload();
         }
-        
-        var status = JSON.parse(data);
-        
-        jQuery("#routerstatus").html(status['router']);
-        if (status['router'] == 'alive') {
-            jQuery("#routerstatus").css("background", "#669933");
-        } else {
-            JQuery("#routerstatus").css("background", "#E24C34");
-        }
-        jQuery("#watchdogstatus").html(status['watchdog']);
-        if (status['watchdog'] == 'alive') {
-            jQuery("#watchdogstatus").css("background", "#669933");
-        } else {
-            jQuery("#watchdogstatus").css("background", "#E24C34");
-        }
+
+        try{
+            var status = JSON.parse(data);
+            jQuery("#routerstatus").html(status['router']);
+            if (status['router'] == 'alive') {
+                jQuery("#routerstatus").css("background", "#669933");
+            } else {
+                JQuery("#routerstatus").css("background", "#E24C34");
+            }
+            jQuery("#watchdogstatus").html(status['watchdog']);
+            if (status['watchdog'] == 'alive') {
+                jQuery("#watchdogstatus").css("background", "#669933");
+            } else {
+                jQuery("#watchdogstatus").css("background", "#E24C34");
+            }
+        }catch (e){}
     }
     );
 }
@@ -385,20 +386,27 @@ function getRouting() {
             theme: 'blue'
         });
 
-        var sent_sms = 0;
+        var available_modems = 0;
+        var scheduled_sms = 0;
         var sms_limit = 0;
         var total_sent_sms = 0;
 
+
         $('#routingTable').find('tr').each(function(){
-            if ($(this).find('th').eq(-1).html() != "maintenance"){
+            available_modems += 1;
+            var last_th = $(this).find('th').eq(-1).html()
+            if (last_th != undefined && last_th != "maintenance") {
                 $(this).find('th').eq(-1).after('<th>maintenance</th>');
+            }
+            var last_td = $(this).find('td').eq(-1).html()
+            if (last_td != undefined && ! last_td.match(/.*restartModem.*/)) {
                 sim_imsi = $(this).find("td:nth-child(2)").html();
                 $(this).find('td').eq(-1).after('<td><button class="btn" type="button" onclick="restartModem(' + sim_imsi + ')">Restart</button></td>');
             }
-            blocked = $(this).find("td:nth-child(5)").html();
+            blocked = $(this).find("td:nth-child(4)").html();
             if (blocked == "No"){
-                sent_sms += parseInt($(this).find("td:nth-child(6)").html());
-                sms_limit += parseInt($(this).find("td:nth-child(7)").html());
+                scheduled_sms += parseInt($(this).find("td:nth-child(6)").html());
+                sms_limit += parseInt($(this).find("td:nth-child(5)").html());
             }
             sent_sms_modem = parseInt($(this).find("td:nth-child(6)").html());
             if (sent_sms_modem){
@@ -406,8 +414,14 @@ function getRouting() {
             }
         });
 
-        availbale_sms = parseInt(sms_limit - sent_sms);
+        if (available_modems > 0){
+            available_modems -= 1;
+        }
+
+        availbale_sms = parseInt(sms_limit - scheduled_sms);
+        $("#available_modems").text(available_modems);
         $("#available_sms").text(availbale_sms);
+        $("#scheduled_sms").text(scheduled_sms);
         $("#sent_sms").text(total_sent_sms);
     });
 

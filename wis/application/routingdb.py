@@ -373,13 +373,36 @@ class Database(object):
         finally:
             rdblock.release()
 
-    # Raise obsolte on timeout in routing
+    # Raise sms_count on the route
     def raise_sms_count(self, modemid):
         smsgwglobals.wislogger.debug("ROUTERDB: Raising sms_count")
 
         try:
             query = ("UPDATE routing SET " +
                      "sms_count = sms_count + 1 " +
+                     "WHERE modemid = ? "
+                     )
+
+            rdblock.acquire()
+            result = self.cur.execute(query, [modemid])
+            count = result.rowcount
+            self.con.commit()
+            smsgwglobals.wislogger.debug("ROUTERDB: " + str(count) +
+                                         " sms_count updated!")
+            return count
+        except Exception as e:
+            smsgwglobals.wislogger.critical("ROUTERDB: " + query +
+                                            " failed! [EXCEPTION]:%s", e)
+            raise error.DatabaseError("Unable to change sms_count! ", e)
+        finally:
+            rdblock.release()
+
+    def decrease_sms_count(self, modemid):
+        smsgwglobals.wislogger.debug("ROUTERDB: Decreasing sms_count")
+
+        try:
+            query = ("UPDATE routing SET " +
+                     "sms_count = sms_count - 1 " +
                      "WHERE modemid = ? "
                      )
 

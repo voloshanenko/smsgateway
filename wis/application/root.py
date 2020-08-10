@@ -21,6 +21,7 @@ import socket
 from common.helper import GlobalHelper
 from application import wisglobals
 from common import smsgwglobals
+from common import database
 from .html import Htmlpage
 
 
@@ -53,8 +54,16 @@ class ViewMain(Htmlpage):
         <table>
             <tbody>
                 <tr>
+                    <td><b>Available modems: </b></td>
+                    <td><label id="available_modems"></label></td>
+                </tr>
+                <tr>
                     <td><b>Available SMS to send: </b></td>
                     <td><label id="available_sms"></label></td>
+                </tr>
+                <tr>
+                    <td><b>Scheduled SMS to send: </b></td>
+                    <td><label id="scheduled_sms"></label></td>
                 </tr>
                 <tr>
                     <td><b>Sent SMS: </b></td>
@@ -254,6 +263,16 @@ class Ajax():
             return "No routes available!"
 
         if len(rows) > 0:
+            for row in rows:
+                db = database.Database()
+                row["sms_sent"] = db.read_sms_count_by_imsi(row["imsi"], real_sent=True)
+                # To lazy now to renemae field in db. So change it just for frontend output
+                row["sms_scheduled"] = row["sms_count"]
+                del row["sms_count"]
+                del row["modemname"]
+
+        if len(rows) > 0:
+            # Add real sent sms field
             od = collections.OrderedDict(sorted(rows[0].items()))
             for k, v in od.items():
                 th.append(k)

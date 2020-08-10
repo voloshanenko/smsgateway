@@ -41,19 +41,41 @@ class Watchdog_Scheduler():
         self.scheduler.start()
         smsgwglobals.wislogger.debug("SCHEDULER: REPROCESS_SMS job starting. Interval: " + str(wisglobals.resendinterval) + " minutes")
         self.scheduler.add_job(self.reprocess_sms, 'interval', minutes = wisglobals.resendinterval)
+        self.scheduler.add_job(self.reprocess_orphaned_sms, 'interval', seconds = 30)
+
+    def reprocess_orphaned_sms(self):
+        # Read and filter SMS with status 0 but statustime < our own start time
+        # This can happen when wis failed and restarted - so definitely no sending happened
+        # So mark SMS as NOPossibleRoutes - they will be reprocessed next run of reprocess_sms job
+        zero_status_sms = self.db.read_sms(status=0)
+        orphaned_sms = [sms for sms in zero_status_sms if datetime.strptime(sms["statustime"], '%Y-%m-%d %H:%M:%S.%f') < wisglobals.scriptstarttime]
+
+        if orphaned_sms:
+            for sms in orphaned_sms:
+                smsgwglobals.wislogger.debug("REPROCESS_ORPHANED_SMS job: processing: " + str(sms))
+
+                #wisglobals.rdb.descrease_sms_count(sms.get('modemid'))
+                smstrans = Smstransfer(content=sms.get('content'),
+                                       targetnr=sms.get('targetnr'),
+                                       priority=sms.get('priority'),
+                                       appid=sms.get('appid'),
+                                       sourceip=sms.get('sourceip'),
+                                       xforwardedfor=sms.get('xforwardedfor'),
+                                       smsid=sms.get('smsid'))
+                smstrans.smsdict["status"] = 104
+                smstrans.smsdict["modemid"] = "NoPossibleRoutes"
+                smstrans.smsdict["imsi"] = ""
+                smstrans.smsdict["statustime"] = datetime.utcnow()
+                smstrans.writetodb()
+        else:
+            smsgwglobals.wislogger.debug("REPROCESS_ORPHANED_SMS job: skipping. NO OPRHANED SMS to process")
+
 
     def reprocess_sms(self):
         if self.allowed_time():
             # Read SMS with statuses NoRoutes + NoPossibleRoutes
             smsen = self.db.read_sms(status=104)
             smsen = smsen + self.db.read_sms(status=105)
-
-            # Read and filter SMS with status 0 but statustime < our own start time
-            # IT can happen when wis failed and restarted - so definitely no sending happened
-            zero_status_sms = self.db.read_sms(status=0)
-            orphaned_sms = [sms for sms in zero_status_sms if datetime.strptime(sms["statustime"], '%Y-%m-%d %H:%M:%S.%f') < wisglobals.scriptstarttime]
-            if orphaned_sms:
-                smsen = smsen + orphaned_sms
 
             if smsen:
                 for sms in smsen:
