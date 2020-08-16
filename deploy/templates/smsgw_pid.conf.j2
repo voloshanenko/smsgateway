@@ -10,6 +10,7 @@
 [pis]
 
 [pid]
+testmode = On
 pidid = pid_{{ loop_idx + 1 }}
 loglevel = DEBUG
 modemlist = [{ "modemid": "{{ loop_idx + 1 }}", "block_incoming_calls": true, "remote_ip": "{{ ansible_default_ipv4.address|default(ansible_all_ipv4_addresses[0]) }}", "remote_port": "{{ initial_pid_remote_port + loop_idx + 1 }}", "balance_ussd": "{{ balance_ussd }}", "balance_regex": "{{ balance_regex }}", "sms_limit": 100, "regex": "(\\+38|fallback)", "lbfactor": 1, "pin": "null", "gammusection": 0, "ctryexitcode": "", "modemname": "Modem #{{ loop_idx + 1 }}"}]
