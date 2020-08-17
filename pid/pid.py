@@ -210,20 +210,27 @@ class Modem(object):
         if usbmodem.get_status():
             modem['imsi'] = usbmodem.get_sim_imsi()
             modem['imei'] = usbmodem.get_modem_imei()
+            modem['carrier'] = usbmodem.get_modem_carrier()
 
             #Check if SIM blocked by cell operator
             modem['sim_blocked'] = usbmodem.check_sim_blocked(modem)
+
+            carrier_cfg = {}
+            if pidglobals.carriersconfig.get(modem['carrier']):
+                carrier_cfg = pidglobals.carriersconfig.get(modem['carrier'])
+            modem["balance_ussd"] = carrier_cfg.get('balance_ussd')
+            modem["balance_regex"] = carrier_cfg.get('balance_regex')
+            modem["sms_limit"] = carrier_cfg.get('sms_limit') if carrier_cfg.get('sms_limit') else 0
 
             if "block_incoming_calls" in modem and modem["block_incoming_calls"]:
                 # Block all incoming calls
                 usbmodem.process_ussd("*35*0000#")
 
-            if "balance_ussd" in modem and "balance_regex" in modem:
+            if modem.get("balance_ussd") and modem.get("balance_regex"):
                  balance_ussd_reply = usbmodem.process_ussd(modem["balance_ussd"])
                  modem["account_balance"] = usbmodem.parse_ussd(balance_ussd_reply, modem["balance_regex"])
             else:
                 modem["account_balance"] = "N/A"
-            modem["sms_limit"] = modem["sms_limit"] if "sms_limit" in modem else 0
 
             pidglobals.modemcondict[modem['modemid']] = usbmodem
             # As we can use connect_modem to reconnect - add to list only if not already exist
@@ -460,6 +467,14 @@ class Pid(object):
             modemlist = json.loads(modemcfg)
         except:
             cfg.errorandexit("modemlist - not a valid JSON structure!")
+
+        #Get carriers config
+        carriercfg = cfg.getvalue('carrierscfg', '{}', 'pid')
+        try:
+            # convert json to list of dictionary entries
+            pidglobals.carriersconfig = json.loads(carriercfg)
+        except:
+            cfg.errorandexit("carrierscfg - not a valid JSON structure!")
 
         # check if modemcfg is set
         if 'modemid' not in modemlist[0]:

@@ -388,9 +388,10 @@ function getRouting() {
 
         var available_modems = 0;
         var scheduled_sms = 0;
+        var scheduled_sms_modem = 0
+        var total_scheduled_sms = 0;
         var sms_limit = 0;
         var total_sent_sms = 0;
-
 
         $('#routingTable').find('tr').each(function(){
             available_modems += 1;
@@ -400,15 +401,19 @@ function getRouting() {
             }
             var last_td = $(this).find('td').eq(-1).html()
             if (last_td != undefined && ! last_td.match(/.*restartModem.*/)) {
-                sim_imsi = $(this).find("td:nth-child(3)").html();
+                sim_imsi = $(this).find("td:nth-child(4)").html();
                 $(this).find('td').eq(-1).after('<td><button class="btn" type="button" onclick="restartModem(' + sim_imsi + ')">Restart</button></td>');
             }
-            blocked = $(this).find("td:nth-child(5)").html();
+            blocked = $(this).find("td:nth-child(6)").html();
             if (blocked == "No"){
-                scheduled_sms += parseInt($(this).find("td:nth-child(7)").html());
-                sms_limit += parseInt($(this).find("td:nth-child(6)").html());
+                scheduled_sms += parseInt($(this).find("td:nth-child(8)").html());
+                sms_limit += parseInt($(this).find("td:nth-child(7)").html());
             }
-            sent_sms_modem = parseInt($(this).find("td:nth-child(8)").html());
+            scheduled_sms_modem += parseInt($(this).find("td:nth-child(8)").html());
+            sent_sms_modem = parseInt($(this).find("td:nth-child(9)").html());
+            if(scheduled_sms_modem){
+                total_scheduled_sms += scheduled_sms_modem;
+            }
             if (sent_sms_modem){
                 total_sent_sms += sent_sms_modem;
             }
@@ -421,7 +426,7 @@ function getRouting() {
         availbale_sms = parseInt(sms_limit - scheduled_sms);
         $("#available_modems").text(available_modems);
         $("#available_sms").text(availbale_sms);
-        $("#scheduled_sms").text(scheduled_sms);
+        $("#scheduled_sms").text(total_scheduled_sms);
         $("#sent_sms").text(total_sent_sms);
     });
 

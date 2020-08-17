@@ -72,6 +72,18 @@ class USBModem(object):
     def get_modem_imei(self):
         return self.__statemachine.GetIMEI()
 
+    def get_modem_carrier(self):
+        network_dict = {
+            "255 01" : "Vodafone",
+            "255 06" : "lifecell"
+        }
+        netinfo = self.__statemachine.GetNetworkInfo()
+
+        try:
+            return network_dict[netinfo["NetworkCode"]]
+        except KeyError as e:
+            return netinfo["NetworkCode"]
+
     def ussd_callback(self, state_machine, callback_type, data):
         global USSD_REPLY
         if callback_type != 'USSD':
@@ -114,7 +126,6 @@ class USBModem(object):
                 ussd_status = ussd_matches.group(1)
         return ussd_status
 
-
     def check_sim_blocked(self, modem):
         # Send sms to fake number
         self.send_SMS("TEST_BLOCK", "3812345678910")
@@ -141,7 +152,6 @@ class USBModem(object):
         smsgwglobals.pidlogger.debug("MODEM: SIM card (IMSI: " + modem["imsi"] + ") inside Modem #" + modem["modemid"] +
                                      " blocked status '" +
                                      blocked + "' ")
-
         return blocked
 
     def set_pin(self, pin):
