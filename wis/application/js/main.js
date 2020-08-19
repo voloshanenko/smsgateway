@@ -405,7 +405,7 @@ function getRouting() {
                 $(this).find('td').eq(-1).after('<td><button class="btn" type="button" onclick="restartModem(' + sim_imsi + ')">Restart</button></td>');
             }
             blocked = $(this).find("td:nth-child(6)").html();
-            if (blocked == "No"){
+            if (blocked == "No" || blocked == "N/A"){
                 scheduled_sms += parseInt($(this).find("td:nth-child(8)").html());
                 sms_limit += parseInt($(this).find("td:nth-child(7)").html());
             }

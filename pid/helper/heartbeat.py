@@ -51,21 +51,28 @@ class Heartbeat(threading.Thread):
             data['status'] = "sent"
 
             asjson = json.dumps(data)
-            smsgwglobals.pidlogger.debug("HEARTBEAT: SENT heartbeat msg: " +
-                                         str(self.handler))
-            #                             str(asjson) + " to handler " +
-
+            smsgwglobals.pidlogger.debug("HEARTBEAT: SENT heartbeat msg: " + str(self.handler))
             tosend = GlobalHelper.encodeAES(asjson)
+
             try:
-                # sending heartbeat message to PID
-                # returncodes are handled in PidWsClient.received_message
-                self.handler.send(tosend)
+                gammu_object = pidglobals.modemcondict[modem["modemid"]]
+                gammu_object.get_modem_carrier()
             except Exception as e:
-                # at any error with communication to PID end heartbeat
-                smsgwglobals.pidlogger.warning("HEARTBEAT: ERROR at " +
-                                               "wis_heartbeat: "
-                                               + str(e))
-                self.stop()
+                closingreason = "PID lost connection to the modem. Probably SIM card ejected!"
+
+                pidglobals.closingcode = 4010
+                self.handler.close(code=4010, reason=closingreason)
+            else:
+                try:
+                    # sending heartbeat message to PID
+                    # returncodes are handled in PidWsClient.received_message
+                    self.handler.send(tosend)
+                except Exception as e:
+                    # at any error with communication to PID end heartbeat
+                    smsgwglobals.pidlogger.warning("HEARTBEAT: ERROR at " +
+                                                   "wis_heartbeat: "
+                                                   + str(e))
+                    self.stop()
 
     def run(self):
         smsgwglobals.pidlogger.debug("HEARTBEAT: STARTING - " +

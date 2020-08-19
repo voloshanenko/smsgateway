@@ -155,9 +155,6 @@ class Watchdog_Route(threading.Thread):
             if self.e.is_set():
                 continue
 
-            # processing sms in database
-            self.process()
-
             try:
                 while True:
                     sms = self.queue.get(block=False)

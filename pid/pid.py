@@ -582,6 +582,10 @@ class Pid(object):
                     # leave while loop
                     # pid restart requested
                     break
+                elif pidglobals.closingcode == 4010:
+                    # leave while loop
+                    # pid lost connection to the modem. Probably sim card ejected
+                    break
 
 
 def main(argv):
