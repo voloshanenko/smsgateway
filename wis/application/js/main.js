@@ -409,7 +409,7 @@ function getRouting() {
                 scheduled_sms += parseInt($(this).find("td:nth-child(8)").html());
                 sms_limit += parseInt($(this).find("td:nth-child(7)").html());
             }
-            scheduled_sms_modem += parseInt($(this).find("td:nth-child(8)").html());
+            scheduled_sms_modem = parseInt($(this).find("td:nth-child(8)").html());
             sent_sms_modem = parseInt($(this).find("td:nth-child(9)").html());
             if(scheduled_sms_modem){
                 total_scheduled_sms += scheduled_sms_modem;
@@ -427,11 +427,29 @@ function getRouting() {
         $("#available_modems").text(available_modems);
         $("#available_sms").text(availbale_sms);
         $("#scheduled_sms").text(total_scheduled_sms);
-        $("#sent_sms").text(total_sent_sms);
+        $("#sent_sms_active_modems").text(total_sent_sms);
     });
 
+    getSMSCount()
     getStatus();
     setTimeout(getRouting, 5000);
+}
+
+function getSMSCount(){
+    $.getJSON('/ajax/get_unprocessedsms').done(function(data) {
+        $("#unprocessed_sms").text(data.unprocessed_sms);
+        availbale_sms = parseInt($("#available_sms").html()) - data.unprocessed_sms;
+        if (availbale_sms > 0){
+            $("#available_sms").text(availbale_sms);
+        }
+    }).fail(function(data){
+        $("#unprocessed_sms").text("N/A");
+    });
+    $.getJSON('/ajax/get_processedsms').done(function(data) {
+        $("#sent_sms_total_today").text(data.processed_sms);
+    }).fail(function(data){
+        $("#sent_sms_total_today").text("N/A");
+    });
 }
 
 $(document).ready(function() {

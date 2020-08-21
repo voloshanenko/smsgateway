@@ -207,6 +207,14 @@ class Root(object):
             smsgwglobals.wislogger.debug("AJAX: called with %s and %s", str(arg), str(params))
             return root.Ajax().getrouting()
 
+        if "get_unprocessedsms" in arg:
+            smsgwglobals.wislogger.debug("AJAX: called with %s and %s", str(arg), str(params))
+            return root.Ajax().get_processedsms(unprocessed=True)
+
+        if "get_processedsms" in arg:
+            smsgwglobals.wislogger.debug("AJAX: called with %s and %s", str(arg), str(params))
+            return root.Ajax().get_processedsms()
+
         if "getsms" in arg:
             smsgwglobals.wislogger.debug("AJAX: called with %s and %s", str(arg), str(params))
             if "all" in params:
@@ -236,7 +244,6 @@ class Root(object):
         data = json.loads(plaintext)
 
         if arg == "watchdog":
-
             if data["run"] == "True":
                 self.triggerwatchdog()
             else:
@@ -353,6 +360,38 @@ class Root(object):
             try:
                 db = Database()
                 erg = db.read_sms_date(date=date)
+                jerg = json.dumps(erg)
+                data = GlobalHelper.encodeAES(jerg)
+                return data
+
+            except error.DatabaseError as e:
+                smsgwglobals.wislogger.debug(e.message)
+
+        if arg == "get_unprocessedsms":
+            if data["get"] != "sms":
+                cherrypy.response.status = 400
+                return
+
+            smsgwglobals.wislogger.debug("Sending unprocessed SMS count")
+            try:
+                db = Database()
+                erg = db.read_processed_sms(unprocessed=True)
+                jerg = json.dumps(erg)
+                data = GlobalHelper.encodeAES(jerg)
+                return data
+
+            except error.DatabaseError as e:
+                smsgwglobals.wislogger.debug(e.message)
+
+        if arg == "get_processedsms":
+            if data["get"] != "sms":
+                cherrypy.response.status = 400
+                return
+
+            smsgwglobals.wislogger.debug("Sending processed SMS count")
+            try:
+                db = Database()
+                erg = db.read_processed_sms(unprocessed=False)
                 jerg = json.dumps(erg)
                 data = GlobalHelper.encodeAES(jerg)
                 return data
