@@ -12,7 +12,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
+import uuid
 
 class Htmlpage(object):
 
@@ -43,7 +43,9 @@ class Htmlpage(object):
         str_line.append('<script type="text/javascript"' +
                         ' src="ts/js/jquery.tablesorter.widgets.min.js"></script>')
         str_line.append('<script type="text/javascript"' +
-                        ' src="js/main.js"></script>')
+                        ' src="js/main.js?random=' +
+                        str(uuid.uuid1()) +
+                        '"></script>')
         str_line.append('''<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/2.1.4/toastr.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/2.1.4/toastr.min.css" />''')
 
