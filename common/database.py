@@ -618,40 +618,33 @@ class Database(object):
             return sms_count
 
     # Read number of sms sent/unsent ()all witghout 24h limit) for last 24h in UKRAINE timezone
-    def read_processed_sms(self, unprocessed = False):
-        query = ("SELECT count(*) " +
-                 "FROM sms ")
+    def read_sms_stats(self):
+        query = ("SELECT sum(case when status = 1 AND statustime BETWEEN ? AND ? then 1 else 0 end), " +
+                 "sum(case when status = 104 then 1 else 0 end) " +
+                 "FROM sms;"
+                )
 
-        # Return already sent/resend sms, not scheduled
-        if unprocessed:
-            query = query + " WHERE status = 104"
-            param = []
-            smsgwglobals.dblogger.debug("SQLite: Read RESEND SMS stats")
-        else:
-            utc_timezone = pytz.timezone("UTC")
-            ua_timezone = pytz.timezone("Europe/Kiev")
+        utc_timezone = pytz.timezone("UTC")
+        ua_timezone = pytz.timezone("Europe/Kiev")
 
-            today = datetime.utcnow().astimezone(ua_timezone).date()
-            start = datetime(today.year, today.month, today.day, tzinfo=ua_timezone).astimezone(utc_timezone)
-            end = start + timedelta(1)
+        today = datetime.utcnow().astimezone(ua_timezone).date()
+        start = datetime(today.year, today.month, today.day, tzinfo=ua_timezone).astimezone(utc_timezone)
+        end = start + timedelta(1)
 
-            smsgwglobals.dblogger.debug("SQLite: Read SENT SMS stats" +
-                                    " for last 24 hours"
-                                    )
-            query = query + " WHERE status = 1"
-            query = query + " AND statustime BETWEEN ? AND ?"
-            param = [ start, end ]
+        smsgwglobals.dblogger.debug("SQLite: Read SENT SMS stats" +
+                                " for last 24 hours + Read RESEND SMS stats"
+                                )
         try:
-            result = self.__cur.execute(query, param)
+            result = self.__cur.execute(query, [ start, end ])
         except Exception as e:
             smsgwglobals.dblogger.critical("SQLite: " + query +
                                            " failed! [EXCEPTION]:%s", e)
             raise error.DatabaseError("Unable to SELECT sms_count FROM sms! ", e)
         else:
-            sms_count = result.fetchone()[0]
-            smsgwglobals.dblogger.debug("SQLite: Sent " + str(sms_count) +
-                                        " SMS for.")
-            return sms_count
+            res = result.fetchone()
+            processed_sms_count = res[0] if res[0] is not None else 0
+            unprocessed_sms_count = res[1] if res[1] is not None else 0
+            return { "processed_sms": processed_sms_count, "unprocessed_sms": unprocessed_sms_count }
 
 def main():
     db = Database()

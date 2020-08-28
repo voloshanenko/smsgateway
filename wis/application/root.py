@@ -163,49 +163,37 @@ class Ajax():
         return {k: self.remove_fields(self, v) for k, v in d.items()
             if k not in {'priority', 'sourceip', 'xforwardedfor', 'smsintime'}}
 
-    def get_processedsms(self, unprocessed = False):
+    def get_sms_stats(self):
 
-        if unprocessed:
-            url = "get_unprocessedsms"
-        else:
-            url = "get_processedsms"
-
+        respdata = '{ "processed_sms": "N/A", "unprocessed_sms": "N/A" }'
         try:
             if wisglobals.sslenabled is not None and 'true' in wisglobals.sslenabled.lower():
                 request = urllib.request.Request('https://' +
                                                  wisglobals.wisipaddress +
                                                  ':' +
                                                  wisglobals.wisport +
-                                                 "/api/" + url)
+                                                 "/api/get_sms_stats")
             else:
                 request = urllib.request.Request('http://' +
                                                 wisglobals.wisipaddress +
                                                 ':' +
                                                 wisglobals.wisport +
-                                                 "/api/" + url)
+                                                 "/api/get_sms_stats")
             request.add_header("Content-Type",
                            "application/json;charset=utf-8")
 
             data = GlobalHelper.encodeAES('{"get": "sms"}')
-
             f = urllib.request.urlopen(request, data, timeout=5)
             resp = f.read().decode('utf-8')
             respdata = GlobalHelper.decodeAES(resp)
-            sms_count = json.loads(respdata)
-
         except urllib.error.URLError as e:
             smsgwglobals.wislogger.debug(e)
-            smsgwglobals.wislogger.debug("AJAX: " + url + " connect error")
+            smsgwglobals.wislogger.debug("AJAX: get_sms_stats connect error")
         except socket.timeout as e:
             smsgwglobals.wislogger.debug(e)
-            smsgwglobals.wislogger.debug("AJAX: " + url + " socket connection timeout")
-
-        if unprocessed:
-            reply = json.dumps({ "unprocessed_sms": sms_count })
-        else:
-            reply = json.dumps({ "processed_sms": sms_count })
-
-        return reply
+            smsgwglobals.wislogger.debug("AJAX: get_sms_stats socket connection timeout")
+        finally:
+            return respdata
 
     def getsms(self, all=False, date=None):
         smsgwglobals.wislogger.debug("AJAX: " + str(all))

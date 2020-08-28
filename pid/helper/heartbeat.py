@@ -62,6 +62,7 @@ class Heartbeat(threading.Thread):
 
                 pidglobals.closingcode = 4010
                 self.handler.close(code=4010, reason=closingreason)
+                self.terminate()
             else:
                 try:
                     # sending heartbeat message to PID
@@ -72,7 +73,12 @@ class Heartbeat(threading.Thread):
                     smsgwglobals.pidlogger.warning("HEARTBEAT: ERROR at " +
                                                    "wis_heartbeat: "
                                                    + str(e))
-                    self.stop()
+
+                    closingreason = "Can't send HEARTBEAT to PIS/WIS!"
+
+                    pidglobals.closingcode = 4010
+                    self.handler.close(code=4010, reason=closingreason)
+                    self.terminate()
 
     def run(self):
         smsgwglobals.pidlogger.debug("HEARTBEAT: STARTING - " +

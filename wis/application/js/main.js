@@ -436,19 +436,16 @@ function getRouting() {
 }
 
 function getSMSCount(){
-    $.getJSON('/ajax/get_unprocessedsms').done(function(data) {
+    $.getJSON('/ajax/get_sms_stats').done(function(data) {
+        $("#sent_sms_total_today").text(data.processed_sms);
         $("#unprocessed_sms").text(data.unprocessed_sms);
         availbale_sms = parseInt($("#available_sms").html()) - data.unprocessed_sms;
         if (availbale_sms > 0){
             $("#available_sms").text(availbale_sms);
         }
     }).fail(function(data){
-        $("#unprocessed_sms").text("N/A");
-    });
-    $.getJSON('/ajax/get_processedsms').done(function(data) {
-        $("#sent_sms_total_today").text(data.processed_sms);
-    }).fail(function(data){
         $("#sent_sms_total_today").text("N/A");
+        $("#unprocessed_sms").text("N/A");
     });
 }
 

@@ -585,6 +585,7 @@ class Pid(object):
                 elif pidglobals.closingcode == 4010:
                     # leave while loop
                     # pid lost connection to the modem. Probably sim card ejected
+                    # Or HEARTBEAT failed
                     break
 
 

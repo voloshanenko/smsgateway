@@ -207,13 +207,9 @@ class Root(object):
             smsgwglobals.wislogger.debug("AJAX: called with %s and %s", str(arg), str(params))
             return root.Ajax().getrouting()
 
-        if "get_unprocessedsms" in arg:
+        if "get_sms_stats" in arg:
             smsgwglobals.wislogger.debug("AJAX: called with %s and %s", str(arg), str(params))
-            return root.Ajax().get_processedsms(unprocessed=True)
-
-        if "get_processedsms" in arg:
-            smsgwglobals.wislogger.debug("AJAX: called with %s and %s", str(arg), str(params))
-            return root.Ajax().get_processedsms()
+            return root.Ajax().get_sms_stats()
 
         if "getsms" in arg:
             smsgwglobals.wislogger.debug("AJAX: called with %s and %s", str(arg), str(params))
@@ -367,31 +363,13 @@ class Root(object):
             except error.DatabaseError as e:
                 smsgwglobals.wislogger.debug(e.message)
 
-        if arg == "get_unprocessedsms":
+        if arg == "get_sms_stats":
             if data["get"] != "sms":
                 cherrypy.response.status = 400
                 return
-
-            smsgwglobals.wislogger.debug("Sending unprocessed SMS count")
             try:
                 db = Database()
-                erg = db.read_processed_sms(unprocessed=True)
-                jerg = json.dumps(erg)
-                data = GlobalHelper.encodeAES(jerg)
-                return data
-
-            except error.DatabaseError as e:
-                smsgwglobals.wislogger.debug(e.message)
-
-        if arg == "get_processedsms":
-            if data["get"] != "sms":
-                cherrypy.response.status = 400
-                return
-
-            smsgwglobals.wislogger.debug("Sending processed SMS count")
-            try:
-                db = Database()
-                erg = db.read_processed_sms(unprocessed=False)
+                erg = db.read_sms_stats()
                 jerg = json.dumps(erg)
                 data = GlobalHelper.encodeAES(jerg)
                 return data
