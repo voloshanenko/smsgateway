@@ -450,7 +450,7 @@ function getSMSCount(){
         $("#unprocessed_sms").text("N/A");
     });
 
-    setTimeout(getSMSCount, 30000);
+    setTimeout(getSMSCount, 15000);
 }
 
 $(document).ready(function() {

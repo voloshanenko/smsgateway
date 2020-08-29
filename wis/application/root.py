@@ -37,9 +37,7 @@ class ViewMain(Htmlpage):
         <table>
                     <tbody>
                     <tr>
-                        <td rowspan="2"><img src="images/n0r1sk-smsgateway-logo-small.png"></td>
                         <td id="routingtablewisid">WisID: ''' + wisglobals.wisid + '''<br>Version: ''' + wisglobals.version + '''</td>
-                        <td></td>
                         <td>Router status:</td>
                         <td id="routerstatus"></td>
                         <td>Watchdog status:</td>
@@ -386,7 +384,7 @@ class Login(Htmlpage):
       <tr>
          <td>
             <div id="logo">
-               <img src="images/n0r1sk-smsgateway-logo-small.png">
+               <img width="100" height="100" src="images/smsgateway-logo-small.png">
             </div>
          </td>
          <td>
