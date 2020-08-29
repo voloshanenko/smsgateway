@@ -624,7 +624,7 @@ class Database(object):
             smsdblock.release()
 
     # Read number of sms sent for last 24h per SIM IMSI in UKRAINE timezone
-    def read_sms_count_by_imsi(self, imsi, real_sent = False):
+    def read_sms_count_by_imsi(self, imsi = None, real_sent = False, all_imsi = False):
 
         utc_timezone = pytz.timezone("UTC")
         ua_timezone = pytz.timezone("Europe/Kiev")
@@ -634,29 +634,45 @@ class Database(object):
         end = start + timedelta(1)
 
         smsgwglobals.dblogger.debug("SQLite: Read SMS stats" +
-                                    " with :imsi: " + imsi +
+                                    " with :imsi: " + str(imsi) +
                                     " for last 24 hours"
                                     )
-        query = ("SELECT count(*) " +
+        if all_imsi:
+            query = ("SELECT imsi, count(*) as sms_count " +
+                     "FROM sms " +
+                     "WHERE statustime BETWEEN ? AND ?"
+                     )
+            # Return already sent sms, not scheduled
+            if real_sent:
+                query = query + " AND status = 1"
+            query = query + " GROUP BY imsi"
+        else:
+            query = ("SELECT count(*) " +
                  "FROM sms " +
                  "WHERE imsi = ? " +
                  "AND statustime BETWEEN ? AND ?"
-                 )
+                )
+            # Return already sent sms, not scheduled
+            if real_sent:
+                query = query + " AND status = 1"
 
-        # Return already sent sms, not scheduled
-        if real_sent:
-            query = query + " AND status = 1"
         try:
             smsdblock.acquire()
-            result = self.__cur.execute(query, [ imsi, start, end])
+            if all_imsi:
+                result = self.__cur.execute(query, [ start, end])
+            else:
+                result = self.__cur.execute(query, [ imsi, start, end])
         except Exception as e:
             smsgwglobals.dblogger.critical("SQLite: " + query +
                                            " failed! [EXCEPTION]:%s", e)
             raise error.DatabaseError("Unable to SELECT sms_count FROM sms! ", e)
         else:
-            sms_count = result.fetchone()[0]
+            if all_imsi:
+                sms_count = [dict(row) for row in result]
+            else:
+                sms_count = result.fetchone()[0]
             smsgwglobals.dblogger.debug("SQLite: Sent " + str(sms_count) +
-                                        " SMS for IMSI " + imsi + ".")
+                                            " SMS for IMSI " + str(imsi) + ".")
             return sms_count
         finally:
             smsdblock.release()

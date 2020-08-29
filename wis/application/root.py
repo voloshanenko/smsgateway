@@ -317,10 +317,15 @@ class Ajax():
             return "No routes available!"
 
         if len(rows) > 0:
+            db = database.Database()
+            sim_sms_sent = db.read_sms_count_by_imsi(real_sent=True, all_imsi=True)
             for row in rows:
-                db = database.Database()
-                row["sms_sent"] = db.read_sms_count_by_imsi(row["imsi"], real_sent=True)
-                # To lazy now to renemae field in db. So change it just for frontend output
+                for cnt in sim_sms_sent:
+                    if cnt["imsi"] == row["imsi"]:
+                        row["sms_sent"] = cnt["sms_count"]
+                if not row["sms_count"]:
+                    row["sms_count"] = 0
+                # To lazy now to rename field in db. So change it just for frontend output
                 row["sms_scheduled"] = row["sms_count"]
                 del row["sms_count"]
                 del row["modemname"]

@@ -221,7 +221,10 @@ class Modem(object):
             modem["check_sim_status"] = carrier_cfg.get('check_sim_status')
 
             if modem["check_sim_status"] == False:
-                
+                modem['sim_blocked'] = "Check Skipped"
+                smsgwglobals.pidlogger.info(pidglobals.pidid + ": " +
+                                             "Skip sim_status check due to config value for: " +
+                                             str(modem))
             else:
                 #Check if SIM blocked by cell operator
                 modem['sim_blocked'] = usbmodem.check_sim_blocked(modem)

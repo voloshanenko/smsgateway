@@ -50,7 +50,7 @@ class Htmlpage(object):
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/2.1.4/toastr.min.css" />''')
 
         str_line.append('<title>')
-        str_line.append('SMS Spammer')
+        str_line.append('SMS Sender')
         str_line.append('</title>')
         str_line.append('</head>')
         self.header = ''.join(str_line)
