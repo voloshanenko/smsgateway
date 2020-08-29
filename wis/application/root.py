@@ -183,7 +183,7 @@ class Ajax():
                            "application/json;charset=utf-8")
 
             data = GlobalHelper.encodeAES('{"get": "sms"}')
-            f = urllib.request.urlopen(request, data, timeout=5)
+            f = urllib.request.urlopen(request, data, timeout=30)
             resp = f.read().decode('utf-8')
             respdata = GlobalHelper.decodeAES(resp)
         except urllib.error.URLError as e:
@@ -224,7 +224,7 @@ class Ajax():
                                                      "/api/getsms")
                 request.add_header("Content-Type",
                                    "application/json;charset=utf-8")
-                f = urllib.request.urlopen(request, data, timeout=5)
+                f = urllib.request.urlopen(request, data, timeout=30)
                 resp = f.read().decode('utf-8')
                 respdata = GlobalHelper.decodeAES(resp)
                 raw_smsen = json.loads(respdata)
@@ -253,7 +253,7 @@ class Ajax():
                                                          "/api/getsms")
                         request.add_header("Content-Type",
                                            "application/json;charset=utf-8")
-                        f = urllib.request.urlopen(request, data, timeout=5)
+                        f = urllib.request.urlopen(request, data, timeout=30)
                         resp = f.read().decode('utf-8')
                         respdata = GlobalHelper.decodeAES(resp)
                         smsen = smsen + json.loads(respdata)

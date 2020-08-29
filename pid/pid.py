@@ -212,15 +212,19 @@ class Modem(object):
             modem['imei'] = usbmodem.get_modem_imei()
             modem['carrier'] = usbmodem.get_modem_carrier()
 
-            #Check if SIM blocked by cell operator
-            modem['sim_blocked'] = usbmodem.check_sim_blocked(modem)
-
             carrier_cfg = {}
             if pidglobals.carriersconfig.get(modem['carrier']):
                 carrier_cfg = pidglobals.carriersconfig.get(modem['carrier'])
             modem["balance_ussd"] = carrier_cfg.get('balance_ussd')
             modem["balance_regex"] = carrier_cfg.get('balance_regex')
             modem["sms_limit"] = carrier_cfg.get('sms_limit') if carrier_cfg.get('sms_limit') else 0
+            modem["check_sim_status"] = carrier_cfg.get('check_sim_status')
+
+            if modem["check_sim_status"] == False:
+                
+            else:
+                #Check if SIM blocked by cell operator
+                modem['sim_blocked'] = usbmodem.check_sim_blocked(modem)
 
             if "block_incoming_calls" in modem and modem["block_incoming_calls"]:
                 # Block all incoming calls

@@ -30,7 +30,6 @@ import threading
 
 smsdblock = threading.Lock()
 
-
 class Database(object):
     """Base class for Database handling - SQLite3
 
@@ -214,16 +213,14 @@ class Database(object):
         statustime ... datetime.utcnow()
         """
         # check if smsid is empty string or None
-        if smsid is None:
-            smsid = str(uuid.uuid1())
-        if not smsid:
+        if smsid is None or not smsid:
             smsid = str(uuid.uuid1())
 
         now = datetime.utcnow()
         if smsintime is None:
             smsintime = now
-            if statustime is None:
-                statustime = now
+        if statustime is None:
+            statustime = now
 
         query = ("INSERT INTO sms " +
                  "(smsid, modemid, imsi, targetnr, content, priority, " +

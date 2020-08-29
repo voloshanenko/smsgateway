@@ -49,6 +49,9 @@ class Htmlpage(object):
         str_line.append('''<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/2.1.4/toastr.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/2.1.4/toastr.min.css" />''')
 
+        str_line.append('<title>')
+        str_line.append('SMS Spammer')
+        str_line.append('</title>')
         str_line.append('</head>')
         self.header = ''.join(str_line)
 

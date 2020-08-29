@@ -43,13 +43,14 @@ $.tablesorter.addParser({
 
 window.onload = function() {
     getRouting();
+    getSMSCount();
     var oldVal = "";
+
     $("#mobiles").on("change keyup paste", function() {
         var currentVal = $(this).val();
         if(currentVal == oldVal) {
             return; //check to prevent multiple simultaneous triggers
         }
-
         oldVal = currentVal;
 
         var filteredData  = filterMobiles(this)
@@ -385,57 +386,56 @@ function getRouting() {
             sortList: [[4, 0], [8, 1]],
             theme: 'blue'
         });
-
-        var available_modems = 0;
-        var scheduled_sms = 0;
-        var scheduled_sms_modem = 0
-        var total_scheduled_sms = 0;
-        var sms_limit = 0;
-        var total_sent_sms = 0;
-
-        $('#routingTable').find('tr').each(function(){
-            available_modems += 1;
-            var last_th = $(this).find('th').eq(-1).html()
-            if (last_th != undefined && last_th != "maintenance") {
-                $(this).find('th').eq(-1).after('<th>maintenance</th>');
-            }
-            var last_td = $(this).find('td').eq(-1).html()
-            if (last_td != undefined && ! last_td.match(/.*restartModem.*/)) {
-                sim_imsi = $(this).find("td:nth-child(4)").html();
-                $(this).find('td').eq(-1).after('<td><button class="btn" type="button" onclick="restartModem(' + sim_imsi + ')">Restart</button></td>');
-            }
-            blocked = $(this).find("td:nth-child(6)").html();
-            if (blocked == "No" || blocked == "N/A"){
-                scheduled_sms += parseInt($(this).find("td:nth-child(8)").html());
-                sms_limit += parseInt($(this).find("td:nth-child(7)").html());
-            }
-            scheduled_sms_modem = parseInt($(this).find("td:nth-child(8)").html());
-            sent_sms_modem = parseInt($(this).find("td:nth-child(9)").html());
-            if(scheduled_sms_modem){
-                total_scheduled_sms += scheduled_sms_modem;
-            }
-            if (sent_sms_modem){
-                total_sent_sms += sent_sms_modem;
-            }
-        });
-
-        if (available_modems > 0){
-            available_modems -= 1;
-        }
-
-        availbale_sms = parseInt(sms_limit - scheduled_sms);
-        $("#available_modems").text(available_modems);
-        $("#available_sms").text(availbale_sms);
-        $("#scheduled_sms").text(total_scheduled_sms);
-        $("#sent_sms_active_modems").text(total_sent_sms);
     });
 
-    getSMSCount()
     getStatus();
     setTimeout(getRouting, 5000);
 }
 
 function getSMSCount(){
+    var available_modems = 0;
+    var scheduled_sms = 0;
+    var scheduled_sms_modem = 0
+    var total_scheduled_sms = 0;
+    var sms_limit = 0;
+    var total_sent_sms = 0;
+
+    $('#routingTable').find('tr').each(function(){
+        available_modems += 1;
+        var last_th = $(this).find('th').eq(-1).html()
+        if (last_th != undefined && last_th != "maintenance") {
+            $(this).find('th').eq(-1).after('<th>maintenance</th>');
+        }
+        var last_td = $(this).find('td').eq(-1).html()
+        if (last_td != undefined && ! last_td.match(/.*restartModem.*/)) {
+            sim_imsi = $(this).find("td:nth-child(4)").html();
+            $(this).find('td').eq(-1).after('<td><button class="btn" type="button" onclick="restartModem(' + sim_imsi + ')">Restart</button></td>');
+        }
+        blocked = $(this).find("td:nth-child(6)").html();
+        if (blocked == "No" || blocked == "N/A"){
+            scheduled_sms += parseInt($(this).find("td:nth-child(8)").html());
+            sms_limit += parseInt($(this).find("td:nth-child(7)").html());
+        }
+        scheduled_sms_modem = parseInt($(this).find("td:nth-child(8)").html());
+        sent_sms_modem = parseInt($(this).find("td:nth-child(9)").html());
+        if(scheduled_sms_modem){
+            total_scheduled_sms += scheduled_sms_modem;
+        }
+        if (sent_sms_modem){
+            total_sent_sms += sent_sms_modem;
+        }
+    });
+
+    if (available_modems > 0){
+        available_modems -= 1;
+    }
+
+    availbale_sms = parseInt(sms_limit - scheduled_sms);
+    $("#available_modems").text(available_modems);
+    $("#available_sms").text(availbale_sms);
+    $("#scheduled_sms").text(total_scheduled_sms);
+    $("#sent_sms_active_modems").text(total_sent_sms);
+
     $.getJSON('/ajax/get_sms_stats').done(function(data) {
         $("#sent_sms_total_today").text(data.processed_sms);
         $("#unprocessed_sms").text(data.unprocessed_sms);
@@ -447,6 +447,8 @@ function getSMSCount(){
         $("#sent_sms_total_today").text("N/A");
         $("#unprocessed_sms").text("N/A");
     });
+
+    setTimeout(getSMSCount, 30000);
 }
 
 $(document).ready(function() {
