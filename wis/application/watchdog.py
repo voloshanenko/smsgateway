@@ -32,9 +32,6 @@ import json
 import socket
 import pytz
 
-# As we use sqlite for now - create mutex to avoid parallel DB access
-smsdb_lock = threading.Lock()
-
 class Watchdog_Scheduler():
     def __init__(self):
         self.db = database.Database()
@@ -46,46 +43,38 @@ class Watchdog_Scheduler():
         self.scheduler.add_job(self.reprocess_orphaned_sms, 'interval', seconds = 30)
 
     def reprocess_orphaned_sms(self):
-        try:
-            smsdb_lock.acquire()
-            # Read and filter SMS with status 0 but statustime < our own start time
-            # This can happen when wis failed and restarted - so definitely no sending happened
-            # So mark SMS as NOPossibleRoutes - they will be reprocessed next run of reprocess_sms job
-            zero_status_sms = self.db.read_sms(status=0)
-            orphaned_sms = [sms for sms in zero_status_sms if datetime.strptime(sms["statustime"], '%Y-%m-%d %H:%M:%S.%f') < wisglobals.scriptstarttime]
+        # Read and filter SMS with status 0 but statustime < our own start time
+        # This can happen when wis failed and restarted - so definitely no sending happened
+        # So mark SMS as NOPossibleRoutes - they will be reprocessed next run of reprocess_sms job
+        zero_status_sms = self.db.read_sms(status=0)
+        orphaned_sms = [sms for sms in zero_status_sms if datetime.strptime(sms["statustime"], '%Y-%m-%d %H:%M:%S.%f') < wisglobals.scriptstarttime]
 
-            if orphaned_sms:
-                for sms in orphaned_sms:
-                    smsgwglobals.wislogger.debug("REPROCESS_ORPHANED_SMS job: processing: " + str(sms))
+        if orphaned_sms:
+            for sms in orphaned_sms:
+                smsgwglobals.wislogger.debug("REPROCESS_ORPHANED_SMS job: processing: " + str(sms))
 
-                    #wisglobals.rdb.descrease_sms_count(sms.get('modemid'))
-                    smstrans = Smstransfer(content=sms.get('content'),
-                                           targetnr=sms.get('targetnr'),
-                                            priority=sms.get('priority'),
-                                           appid=sms.get('appid'),
-                                           sourceip=sms.get('sourceip'),
-                                           xforwardedfor=sms.get('xforwardedfor'),
+                #wisglobals.rdb.descrease_sms_count(sms.get('modemid'))
+                smstrans = Smstransfer(content=sms.get('content'),
+                                        targetnr=sms.get('targetnr'),
+                                        priority=sms.get('priority'),
+                                        appid=sms.get('appid'),
+                                        sourceip=sms.get('sourceip'),
+                                        xforwardedfor=sms.get('xforwardedfor'),
                                         smsid=sms.get('smsid'))
-                    smstrans.smsdict["status"] = 104
-                    smstrans.smsdict["modemid"] = "NoPossibleRoutes"
-                    smstrans.smsdict["imsi"] = ""
-                    smstrans.smsdict["statustime"] = datetime.utcnow()
-                    smstrans.writetodb()
-            else:
-                smsgwglobals.wislogger.debug("REPROCESS_ORPHANED_SMS job: skipping. NO OPRHANED SMS to process")
-        finally:
-            smsdb_lock.release()
+                smstrans.smsdict["status"] = 104
+                smstrans.smsdict["modemid"] = "NoPossibleRoutes"
+                smstrans.smsdict["imsi"] = ""
+                smstrans.smsdict["statustime"] = datetime.utcnow()
+                smstrans.writetodb()
+        else:
+            smsgwglobals.wislogger.debug("REPROCESS_ORPHANED_SMS job: skipping. NO OPRHANED SMS to process")
 
 
     def reprocess_sms(self):
         if self.allowed_time():
-            try:
-                smsdb_lock.acquire()
-                # Read SMS with statuses NoRoutes + NoPossibleRoutes + NotAllowedTimeframe
-                smsen = self.db.read_sms(status=104)
-                smsen = smsen + self.db.read_sms(status=105)
-            finally:
-                smsdb_lock.release()
+            # Read SMS with statuses NoRoutes + NoPossibleRoutes + NotAllowedTimeframe
+            smsen = self.db.read_sms(status=104)
+            smsen = smsen + self.db.read_sms(status=105)
 
             if smsen:
                 for sms in smsen:
@@ -99,7 +88,6 @@ class Watchdog_Scheduler():
                                       xforwardedfor=sms.get('xforwardedfor'),
                                       smsid=sms.get('smsid'))
                     try:
-                        smsdb_lock.acquire()
                         Helper.processsms(smstrans)
                     except apperror.NoRoutesFoundError:
                         pass
@@ -107,8 +95,6 @@ class Watchdog_Scheduler():
                         # Add sms to global queue
                         wisglobals.watchdogThread.queue.put(smstrans.smsdict["smsid"])
                         wisglobals.watchdogThreadNotify.set()
-                    finally:
-                        smsdb_lock.release()
             else:
                 smsgwglobals.wislogger.debug("REPROCESS_SMS job: skipping. NO SMS to process")
         else:
@@ -212,11 +198,7 @@ class Watchdog_Route(threading.Thread):
                         smstrans.smsdict["status"] = 1
                         smsgwglobals.wislogger.debug("WATCHDOG [route: " + str(self.routingid) + "] SEND direct:" + str(smstrans.smsdict))
                     smsgwglobals.wislogger.debug("WATCHDOG [route: " + str(self.routingid) + "] SEND Update DB SUCCESS:" + str(smstrans.smsdict))
-                    try:
-                        smsdb_lock.acquire()
-                        smstrans.updatedb()
-                    finally:
-                        smsdb_lock.release()
+                    smstrans.updatedb()
                 elif int(status_code) == 2000 or int(status_code) == 31 or int(status_code) == 27 or int(status_code) == 69:
                     # PIS doesn't have modem endpoint - reprocess SMS and choose different route) - Error 2000
                     # Modem fail - reprocess SMS and choose different route) - Error 31 (can't read SMSC nummber, 99.99% - we just lost connection)
@@ -225,7 +207,6 @@ class Watchdog_Route(threading.Thread):
                     # BUT use same smsid (after new route will be choosed it will decrease sms_count on route (IMSI)
                     smsgwglobals.wislogger.debug("WATCHDOG [route: " + str(self.routingid) + "] PIS can't reach PID: " + str(smstrans.smsdict))
                     try:
-                        smsdb_lock.acquire()
                         Helper.processsms(smstrans)
                     except apperror.NoRoutesFoundError:
                         pass
@@ -233,8 +214,6 @@ class Watchdog_Route(threading.Thread):
                         # Add sms to global queue
                         wisglobals.watchdogThread.queue.put(smstrans.smsdict["smsid"])
                         wisglobals.watchdogThreadNotify.set()
-                    finally:
-                        smsdb_lock.release()
                 else:
                     if smstrans.smsdict["status"] == 0:
                         smstrans.smsdict["status"] = int(status_code)
@@ -243,11 +222,7 @@ class Watchdog_Route(threading.Thread):
                         smstrans.smsdict["status"] = 100 + int(status_code)
                         smsgwglobals.wislogger.debug("WATCHDOG [route: " + str(self.routingid) + "] SEND deligated ERROR:" + str(smstrans.smsdict))
                     smsgwglobals.wislogger.debug("WATCHDOG [route: " + str(self.routingid) + "] SEND Update DB ERROR:" + str(smstrans.smsdict))
-                    try:
-                        smsdb_lock.acquire()
-                        smstrans.updatedb()
-                    finally:
-                        smsdb_lock.release()
+                    smstrans.updatedb()
         except urllib.error.URLError as e:
             if smstrans.smsdict["status"] == -1:
                 smstrans.smsdict["status"] = 300
@@ -255,18 +230,13 @@ class Watchdog_Route(threading.Thread):
                 smstrans.smsdict["status"] = 200
 
             smsgwglobals.wislogger.debug("WATCHDOG [route: " + str(self.routingid) + "] SEND EXCEPTION " + str(smstrans.smsdict))
-            try:
-                smsdb_lock.acquire()
-                smstrans.updatedb()
-            finally:
-                smsdb_lock.release()
+            smstrans.updatedb()
             # set SMS to not send!!!
             smsgwglobals.wislogger.debug(e)
             smsgwglobals.wislogger.debug("WA3TCHDOG [route: " + str(self.routingid) + "] SEND Get peers NOTOK")
 
             # On 500 error - (probably PID/route died - try to reprocess sms)
             try:
-                smsdb_lock.acquire()
                 Helper.processsms(smstrans)
             except apperror.NoRoutesFoundError:
                 pass
@@ -274,21 +244,14 @@ class Watchdog_Route(threading.Thread):
                 # Add sms to global queue
                 wisglobals.watchdogThread.queue.put(smstrans.smsdict["smsid"])
                 wisglobals.watchdogThreadNotify.set()
-            finally:
-                smsdb_lock.release()
         except socket.timeout as e:
             smstrans.smsdict["status"] = 400
-            try:
-                smsdb_lock.acquire()
-                smstrans.updatedb()
-            finally:
-                smsdb_lock.release()
+            smstrans.updatedb()
             smsgwglobals.wislogger.debug(e)
             smsgwglobals.wislogger.debug("WATCHDOG [route: " + str(self.routingid) + "] SEND Socket connection timeout")
 
             # On 400 error - (probably PID/route died - try to reprocess sms)
             try:
-                smsdb_lock.acquire()
                 Helper.processsms(smstrans)
             except apperror.NoRoutesFoundError:
                 pass
@@ -296,8 +259,6 @@ class Watchdog_Route(threading.Thread):
                 # Add sms to global queue
                 wisglobals.watchdogThread.queue.put(smstrans.smsdict["smsid"])
                 wisglobals.watchdogThreadNotify.set()
-            finally:
-                smsdb_lock.release()
 
     def process(self, sms):
         smsgwglobals.wislogger.debug("WATCHDOG [route: " + str(self.routingid) + "] processing sms")
@@ -389,7 +350,6 @@ class Watchdog(threading.Thread):
     def process(self, sms_id):
 
         try:
-            smsdb_lock.acquire()
             db = database.Database()
 
             # cleanup old sms
@@ -404,8 +364,6 @@ class Watchdog(threading.Thread):
             smsgwglobals.wislogger.debug(e.message)
             # Add sms_id back to the queue
             self.queue.put(sms_id)
-        finally:
-            smsdb_lock.release()
 
         # we have sms, just process
         sms = smsen[0]
@@ -419,15 +377,12 @@ class Watchdog(threading.Thread):
             smsgwglobals.wislogger.debug("WATCHDOG: ALERT ROUTE LOST")
             # try to reprocess route
             try:
-                smsdb_lock.acquire()
                 smstrans.updatedb()
                 Helper.processsms(smstrans)
             except apperror.NoRoutesFoundError:
                 pass
             else:
                 self.queue.put(smstrans.smsdict["smsid"])
-            finally:
-                smsdb_lock.release()
         elif route[0]["wisid"] != wisglobals.wisid:
             self.deligate(smstrans, route)
         else:
@@ -444,15 +399,12 @@ class Watchdog(threading.Thread):
             else:
                 # Reprocess
                 try:
-                    smsdb_lock.acquire()
                     smstrans.updatedb()
                     Helper.processsms(smstrans)
                 except apperror.NoRoutesFoundError:
                     pass
                 else:
                     self.queue.put(smstrans.smsdict["smsid"])
-                finally:
-                    smsdb_lock.release()
 
     def run(self):
         smsgwglobals.wislogger.debug("WATCHDOG: starting")

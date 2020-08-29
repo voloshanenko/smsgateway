@@ -26,6 +26,9 @@ import uuid
 from common import config
 from common import error
 from common import smsgwglobals
+import threading
+
+smsdblock = threading.Lock()
 
 
 class Database(object):
@@ -141,6 +144,7 @@ class Database(object):
         # set changed timestamp to utcnow if not set
 
         try:
+            smsdblock.acquire()
             smsgwglobals.dblogger.debug("SQLite: Write into stats" +
                                         " :intype: " + str(intype) +
                                         " :lasttimestamp: " + str(timestamp)
@@ -153,6 +157,8 @@ class Database(object):
             smsgwglobals.dblogger.critical("SQLite: " + query +
                                            " failed! [EXCEPTION]:%s", e)
             raise error.DatabaseError("Unable to INSERT stats! ", e)
+        finally:
+            smsdblock.release()
 
     # Insert or replaces a users data
     def write_users(self, user, password, salt, changed=None):
@@ -170,6 +176,7 @@ class Database(object):
             changed = datetime.utcnow()
 
         try:
+            smsdblock.acquire()
             smsgwglobals.dblogger.debug("SQLite: Write into users" +
                                         " :user: " + user +
                                         " :password-len: " +
@@ -185,6 +192,8 @@ class Database(object):
             smsgwglobals.dblogger.critical("SQLite: " + query +
                                            " failed! [EXCEPTION]:%s", e)
             raise error.DatabaseError("Unable to INSERT user! ", e)
+        finally:
+            smsdblock.release()
 
     # Insert sms
     def insert_sms(self, modemid='00431234', imsi='1234567890', targetnr='+431234',
@@ -225,6 +234,7 @@ class Database(object):
                  "modemid=excluded.modemid, imsi=excluded.imsi, statustime=excluded.statustime, status=excluded.status")
 
         try:
+            smsdblock.acquire()
             smsgwglobals.dblogger.debug("SQLite: Insert SMS" +
                                         " :smsid: " + smsid +
                                         " :imsi: " + imsi +
@@ -250,6 +260,8 @@ class Database(object):
             smsgwglobals.dblogger.critical("SQLite: " + query +
                                            " failed! [EXCEPTION]:%s", e)
             raise error.DatabaseError("Unable to INSERT sms! ", e)
+        finally:
+            smsdblock.release()
 
     # update sms (input is a list)
     def update_sms(self, smslist=[]):
@@ -278,6 +290,7 @@ class Database(object):
                      "WHERE smsid = ?"
                      )
             try:
+                smsdblock.acquire()
                 self.__con.execute(query, (sms['modemid'], sms['imsi'], sms['targetnr'],
                                            sms['content'], sms['priority'],
                                            sms['appid'], sms['sourceip'],
@@ -292,6 +305,8 @@ class Database(object):
                 smsgwglobals.dblogger.critical("SQLite: " + query +
                                                " failed! [EXCEPTION]:%s", e)
                 raise error.DatabaseError("Unable to UPDATE sms! ", e)
+            finally:
+                smsdblock.release()
 
     # Merge userlist with userlist out of db
     def merge_users(self, userlist=[]):
@@ -338,6 +353,7 @@ class Database(object):
         query = ("DELETE FROM users " +
                  "WHERE user = ?")
         try:
+            smsdblock.acquire()
             self.__con.execute(query, [user])
             self.__con.commit()
 
@@ -347,6 +363,8 @@ class Database(object):
             smsgwglobals.dblogger.critical("SQLite: " + query +
                                            " failed! [EXCEPTION]:%s", e)
             raise error.DatabaseError("Unable to DELETE from users! ", e)
+        finally:
+            smsdblock.release()
 
     # Delete UNITTEST sms
     def delete_unittest_sms(self, modemid):
@@ -356,6 +374,7 @@ class Database(object):
         query = ("DELETE FROM sms " +
                  "WHERE modemid = ?")
         try:
+            smsdblock.acquire()
             result = self.__con.execute(query, [modemid])
             count = result.rowcount
             self.__con.commit()
@@ -367,6 +386,8 @@ class Database(object):
             smsgwglobals.dblogger.critical("SQLite: " + query +
                                            " failed! [EXCEPTION]:%s", e)
             raise error.DatabaseError("Unable to DELETE sms! ", e)
+        finally:
+            smsdblock.release()
 
     # Delete SMS older than x seconds (=400 days)
     def delete_old_sms(self, secs=34560000):
@@ -385,6 +406,7 @@ class Database(object):
                  "WHERE smsintime < ?"
                  )
         try:
+            smsdblock.acquire()
             result = self.__con.execute(query, [ts])
             count = result.rowcount
             self.__con.commit()
@@ -396,6 +418,8 @@ class Database(object):
             smsgwglobals.dblogger.critical("SQLite: " + query +
                                            " failed! [EXCEPTION]:%s", e)
             raise error.DatabaseError("Unable to DELETE sms! ", e)
+        finally:
+            smsdblock.release()
 
     # Read stats timestamp
     def read_statstimestamp(self, intype='SUC_SMS_STATS'):
@@ -408,6 +432,7 @@ class Database(object):
                  "FROM stats " +
                  "WHERE type = ?")
         try:
+            smsdblock.acquire()
             result = self.__cur.execute(query, [intype])
         except Exception as e:
             smsgwglobals.dblogger.critical("SQLite: " + query +
@@ -419,6 +444,8 @@ class Database(object):
             smsgwglobals.dblogger.debug("SQLite: " + str(len(stats)) +
                                         " user selected.")
             return stats
+        finally:
+            smsdblock.release()
 
     # Read users
     def read_users(self, user=None):
@@ -433,9 +460,11 @@ class Database(object):
                  "FROM users")
         try:
             if user is None:
+                smsdblock.acquire()
                 result = self.__cur.execute(query)
             else:
                 # user is set
+                smsdblock.acquire()
                 query = query + " WHERE user = ?"
                 result = self.__cur.execute(query, [user])
         except Exception as e:
@@ -448,6 +477,8 @@ class Database(object):
             smsgwglobals.dblogger.debug("SQLite: " + str(len(user)) +
                                         " user selected.")
             return user
+        finally:
+            smsdblock.release()
 
     # Read sms
     def read_sms_date(self, date=None):
@@ -472,12 +503,15 @@ class Database(object):
                  "statustime " +
                  "FROM sms ")
         try:
+            smsdblock.acquire()
             query = query + "WHERE smsintime LIKE ?"
             result = self.__cur.execute(query, [date])
         except Exception as e:
             smsgwglobals.dblogger.critical("SQLite: " + query +
                                            " failed! [EXCEPTION]:%s", e)
             raise error.DatabaseError("Unable to SELECT FROM sms! ", e)
+        finally:
+            smsdblock.release()
 
         sms = [dict(row) for row in result]
         smsgwglobals.dblogger.debug("SQLite: " + str(len(sms)) +
@@ -510,23 +544,28 @@ class Database(object):
         orderby = " ORDER BY priority DESC, smsintime ASC;"
         try:
             if smsid is not None:
+                smsdblock.acquire()
                 query = query + "WHERE smsid = ?" + orderby
                 result = self.__cur.execute(query, [smsid])
             elif modemid is None:
                 if status is None:
+                    smsdblock.acquire()
                     query = query + orderby
                     result = self.__cur.execute(query)
                 else:
                     # status only
+                    smsdblock.acquire()
                     query = query + "WHERE status = ?" + orderby
                     result = self.__cur.execute(query, [status])
             else:
                 if status is None:
                     # modemid only
+                    smsdblock.acquire()
                     query = query + "WHERE modemid = ?" + orderby
                     result = self.__cur.execute(query, [modemid])
                 else:
                     # status and modemid
+                    smsdblock.acquire()
                     query = query + "WHERE status = ? AND modemid = ?" + orderby
                     result = self.__cur.execute(query, (status, modemid))
         except Exception as e:
@@ -538,6 +577,8 @@ class Database(object):
             smsgwglobals.dblogger.debug("SQLite: " + str(len(sms)) +
                                         " SMS selected.")
             return sms
+        finally:
+            smsdblock.release()
 
     # Read successfuly sent sms for stats
     def read_sucsmsstats(self, timestamp=None):
@@ -565,6 +606,7 @@ class Database(object):
 
         orderby = " ORDER BY statustime ASC;"
         try:
+            smsdblock.acquire()
             if timestamp is None:
                 query = query + orderby
                 result = self.__cur.execute(query)
@@ -581,6 +623,8 @@ class Database(object):
             smsgwglobals.dblogger.debug("SQLite: " + str(len(sms)) +
                                         " SMS for stats selected.")
             return sms
+        finally:
+            smsdblock.release()
 
     # Read number of sms sent for last 24h per SIM IMSI in UKRAINE timezone
     def read_sms_count_by_imsi(self, imsi, real_sent = False):
@@ -606,6 +650,7 @@ class Database(object):
         if real_sent:
             query = query + " AND status = 1"
         try:
+            smsdblock.acquire()
             result = self.__cur.execute(query, [ imsi, start, end])
         except Exception as e:
             smsgwglobals.dblogger.critical("SQLite: " + query +
@@ -616,6 +661,8 @@ class Database(object):
             smsgwglobals.dblogger.debug("SQLite: Sent " + str(sms_count) +
                                         " SMS for IMSI " + imsi + ".")
             return sms_count
+        finally:
+            smsdblock.release()
 
     # Read number of sms sent/unsent ()all witghout 24h limit) for last 24h in UKRAINE timezone
     def read_sms_stats(self):
@@ -635,6 +682,7 @@ class Database(object):
                                 " for last 24 hours + Read RESEND SMS stats"
                                 )
         try:
+            smsdblock.acquire()
             result = self.__cur.execute(query, [ start, end ])
         except Exception as e:
             smsgwglobals.dblogger.critical("SQLite: " + query +
@@ -645,6 +693,8 @@ class Database(object):
             processed_sms_count = res[0] if res[0] is not None else 0
             unprocessed_sms_count = res[1] if res[1] is not None else 0
             return { "processed_sms": processed_sms_count, "unprocessed_sms": unprocessed_sms_count }
+        finally:
+            smsdblock.release()
 
 def main():
     db = Database()

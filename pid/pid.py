@@ -323,12 +323,12 @@ class Modem(object):
         if pidglobals.testmode:
             # special answers if testmode is true!
             if sms['content'] == "SUCCESS":
-                time.sleep(2)
+                time.sleep(5)
                 status['status'] = "SUCCESS"
                 status['status_code'] = 1
 
             elif sms['content'] == "ERROR":
-                time.sleep(2)
+                time.sleep(5)
                 status['status'] = "ERROR"
                 status['status_code'] = 100
 

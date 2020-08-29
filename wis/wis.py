@@ -473,7 +473,6 @@ class Root(object):
 
         invalid_messages = []
         for targetnr in mobile_numbers:
-            print(targetnr)
             digits_regex = '^\d{12}$'
             digits_match = re.search(digits_regex, targetnr)
             if digits_match is None:
@@ -483,7 +482,6 @@ class Root(object):
                 allowed_prefix = False
                 for prefix in wisglobals.allowedmobileprefixes:
                     prefix_regex = '^' + prefix + r'\d{7}$'
-                    print(prefix_regex)
                     prefix_match = re.search(prefix_regex, targetnr)
                     if prefix_match is not None:
                         allowed_prefix = True
