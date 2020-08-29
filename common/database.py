@@ -67,11 +67,6 @@ class Database(object):
         self.create_table_sms()
         self.create_table_stats()
 
-        # delete sms older than configured timetoleave dbttl
-        # default is 90 days in seconds
-        dbttl = int(self.__smsconfig.getvalue('dbttl', 315569520, 'db'))
-        self.delete_old_sms(dbttl)
-
     # Destructor (called with "del <Databaseobj>"
     def __del__(self):
         # shutting down connecitons to SQLite
@@ -97,7 +92,11 @@ class Database(object):
                  "password TEXT, " +
                  "salt TEXT, " +
                  "changed TIMESTAMP)")
-        self.__cur.execute(query)
+        try:
+            smsdblock.acquire()
+            self.__cur.execute(query)
+        finally:
+            smsdblock.release()
 
     # Create table and index for table sms
     def create_table_sms(self):
@@ -117,13 +116,21 @@ class Database(object):
                  "status INTEGER, " +
                  "statustime TIMESTAMP)"
                  )
-        self.__cur.execute(query)
+        try:
+            smsdblock.acquire()
+            self.__cur.execute(query)
+        finally:
+            smsdblock.release()
 
         # index sms_status_modemid
         query = ("CREATE INDEX IF NOT EXISTS sms_status_modemid " +
                  "ON sms (status, modemid)"
                  )
-        self.__cur.execute(query)
+        try:
+            smsdblock.acquire()
+            self.__cur.execute(query)
+        finally:
+            smsdblock.release()
 
     # Create table stats
     def create_table_stats(self):
@@ -131,7 +138,11 @@ class Database(object):
         query = ("CREATE TABLE IF NOT EXISTS stats (" +
                  "type TEXT PRIMARY KEY UNIQUE, " +
                  "lasttimestamp TIMESTAMP)")
-        self.__cur.execute(query)
+        try:
+            smsdblock.acquire()
+            self.__cur.execute(query)
+        finally:
+            smsdblock.release()
 
     # Insert or replaces a stats timestamp data
     def write_statstimestamp(self, timestamp, intype='SUC_SMS_STATS'):

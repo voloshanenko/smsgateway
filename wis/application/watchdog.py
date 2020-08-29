@@ -40,7 +40,15 @@ class Watchdog_Scheduler():
         self.scheduler.start()
         smsgwglobals.wislogger.debug("SCHEDULER: REPROCESS_SMS job starting. Interval: " + str(wisglobals.resendinterval) + " minutes")
         self.scheduler.add_job(self.reprocess_sms, 'interval', minutes = wisglobals.resendinterval)
+
+        smsgwglobals.wislogger.debug("SCHEDULER: REPROCESS_ORPHANED_SMS job starting. Interval: 30 seconds")
         self.scheduler.add_job(self.reprocess_orphaned_sms, 'interval', seconds = 30)
+
+        smsgwglobals.wislogger.debug("SCHEDULER: DELETE_OLD_SMS job starting. Interval: 7 days")
+        self.scheduler.add_job(self.delete_old_sms, 'interval', days = 7)
+
+    def delete_old_sms(self):
+        self.db.delete_old_sms(wisglobals.cleanupseconds)
 
     def reprocess_orphaned_sms(self):
         # Read and filter SMS with status 0 but statustime < our own start time
@@ -351,10 +359,6 @@ class Watchdog(threading.Thread):
 
         try:
             db = database.Database()
-
-            # cleanup old sms
-            db.delete_old_sms(wisglobals.cleanupseconds)
-
             smsen = db.read_sms(smsid=sms_id)
             if not smsen:
                 smsgwglobals.wislogger.debug("WATCHDOG: no SMS with ID: " + sms_id + " in DB")
