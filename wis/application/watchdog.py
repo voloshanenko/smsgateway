@@ -81,7 +81,7 @@ class Watchdog_Scheduler():
         if self.allowed_time():
             try:
                 smsdb_lock.acquire()
-                # Read SMS with statuses NoRoutes + NoPossibleRoutes
+                # Read SMS with statuses NoRoutes + NoPossibleRoutes + NotAllowedTimeframe
                 smsen = self.db.read_sms(status=104)
                 smsen = smsen + self.db.read_sms(status=105)
             finally:

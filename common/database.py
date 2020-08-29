@@ -620,7 +620,7 @@ class Database(object):
     # Read number of sms sent/unsent ()all witghout 24h limit) for last 24h in UKRAINE timezone
     def read_sms_stats(self):
         query = ("SELECT sum(case when status = 1 AND statustime BETWEEN ? AND ? then 1 else 0 end), " +
-                 "sum(case when status = 104 then 1 else 0 end) " +
+                 "sum(case when status = 104 or status = 105 then 1 else 0 end) " +
                  "FROM sms;"
                 )
 
