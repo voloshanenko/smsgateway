@@ -6,6 +6,7 @@ from pprint import pprint
 import requests
 import json
 import subprocess
+import threading
 import sys
 
 portainer_env_variables = ["PORTAINER_HOST", "PORTAINER_USERNAME", "PORTAINER_PASSWORD", "PORTAINER_STACK_NAME"]
@@ -19,7 +20,7 @@ for env_variable in portainer_env_variables:
 portainer_host = os.environ.get('PORTAINER_HOST') or 'http://10.100.101.201:9000/api'
 portainer_username = os.environ.get('PORTAINER_USERNAME') or 'admin'
 portainer_password = os.environ.get('PORTAINER_PASSWORD') or 'Qazwsx!@#123'
-portainer_stack_name = os.environ.get('PORTAINER_STACK_NAME') or 'asteriskcdr'
+portainer_stack_name = os.environ.get('PORTAINER_STACK_NAME') or 'smsgateway'
 
 def main():
     portainer_config = portainer_api.Configuration()
@@ -51,18 +52,28 @@ def main():
             stacks_api.stack_delete(id=stack_id, endpoint_id=endpoint_id)           
 
             if stack_containers:
+                threads = []
                 for container in stack_containers:
                     print("......Found container: '" + container + "'")
                     print("......Delete container: '" + container + "'")
-                    delete_container(endpoint_id=endpoint_id, container_name=container, jwt_token=jwt_token)
+                    t = threading.Thread(target=delete_container, args=[endpoint_id, container, jwt_token])
+                    threads.append(t)
+                for thread in threads:
+                    thread.start()
+                    thread.join()
 
-	    # Get only UNIQ images
-	    containers_images = set(containers_images)
+	        # Get only UNIQ images
+	        containers_images = set(containers_images)
             if containers_images:
+                threads = []
                 for image in containers_images:
                     print("......Found container image: '" + image + "'")
                     print("......Delete image: '" + image + "'")
-                    delete_container_image(endpoint_id=endpoint_id, image_name=image, jwt_token=jwt_token)
+                    t = threading.Thread(target=delete_container_image, args=[endpoint_id, image, jwt_token])
+                    threads.append(t)
+                for thread in threads:
+                    thread.start()
+                    thread.join()
             try:
                 print("...Remove stack: '" + portainer_stack_name + "'")
                 stacks_api.stack_delete(id=stack_id, endpoint_id=endpoint_id)

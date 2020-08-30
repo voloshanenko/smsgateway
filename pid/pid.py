@@ -311,13 +311,14 @@ class Modem(object):
             print(traceback.format_exc())
 
         # Socat on remote hosts can be slow, wait at least 3 seconds before trying init modem
-        sleep(3)
+        sleep(2)
         smsgwglobals.pidlogger.debug("Socat connection established for modem id: " + modem["modemid"] + " --> " + str(device_name))
         # Check if our socat process still running
         global SOCAT_PROC
         if socat_proc.poll() is None:
             SOCAT_PROC[modem["modemid"]] = socat_proc
-            return device_name
+
+        return device_name
 
     @staticmethod
     def sendsms(sms):

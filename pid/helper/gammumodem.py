@@ -128,7 +128,7 @@ class USBModem(object):
 
     def check_sim_blocked(self, modem):
         # Send sms to fake number
-        self.send_SMS("TEST_BLOCK", "3812345678910")
+        self.send_SMS("TEST_BLOCK", "+3812345678910")
 
         abspath = pidglobals.abspath
         gammulogfile = modem["logfile"] if modem.get("logfile") else pidglobals.abspath +  "/logs/modem_" + modem["modemid"] + ".log"
