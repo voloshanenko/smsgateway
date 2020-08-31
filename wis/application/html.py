@@ -34,8 +34,11 @@ class Htmlpage(object):
         str_line.append('<head>')
         str_line.append('<link href="css/style.css"' +
                         'rel="stylesheet" type="text/css" />')
+        str_line.append('<link rel="stylesheet" href="//code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">')
         str_line.append('<script type="text/javascript"' +
-                        ' src="js/jquery-1.11.3.min.js"></script>')
+                        ' src="js/jquery-3.5.1.min.js"></script>')
+        str_line.append('<script type="text/javascript"' +
+                        ' src="js/jquery-ui-1.12.1.min.js"></script>')
         str_line.append('<script type="text/javascript"' +
                         ' src="ts/js/jquery.tablesorter.min.js"></script>')
         str_line.append('<link href="ts/css/theme.blue.min.css"' +

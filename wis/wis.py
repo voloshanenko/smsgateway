@@ -23,6 +23,7 @@ import re
 import uuid
 from queue import Queue
 import urllib.request
+import threading
 from datetime import datetime
 
 from common import error
@@ -498,10 +499,33 @@ class Root(object):
             self.triggerwatchdog()
             return resp
 
+        priority = 1
+        if 'priority' in cherrypy.request.params:
+            priority = int(json.get('priority'))
+
+        sourceip=cherrypy.request.headers.get('Remote-Addr'),
+        xforwardedfor=cherrypy.request.headers.get('X-Forwarded-For'),
+        thread_sender = threading.Thread(target=self.thread_sender, args=[mobile_numbers_to_send, json_data, priority, sourceip, xforwardedfor])
+        thread_sender.start()
+
+        cherrypy.response.status = 200
+        final_count = len(mobile_numbers_to_send)
+        success_message = ":" + str(final_count) + " sms added to the queue successfully"
+        if invalid_messages:
+            invalid_msg = ", ".join(invalid_messages)
+            success_message += ", " + invalid_msg
+        resp["message"] = success_message
+        self.triggerwatchdog()
+
+        return resp
+
+    def thread_sender(self, mobile_numbers_to_send, json_data, priority, sourceip, xforwardedfor):
+        if isinstance(sourceip, tuple):
+            sourceip = str(sourceip[0])
+        if isinstance(xforwardedfor, tuple):
+            xforwardedfor = str(xforwardedfor[0])
+
         for targetnr in mobile_numbers_to_send:
-            priority = 1
-            if 'priority' in cherrypy.request.params:
-                priority = int(json.get('priority'))
             # this is used for parameter extraction
             # Create sms data object and make sure that it has a smsid
             sms_uuid = str(uuid.uuid1())
@@ -509,8 +533,8 @@ class Root(object):
                               targetnr=targetnr,
                               priority=priority,
                               appid=json_data.get('appid'),
-                              sourceip=cherrypy.request.headers.get('Remote-Addr'),
-                              xforwardedfor=cherrypy.request.headers.get('X-Forwarded-For'),
+                              sourceip=sourceip,
+                              xforwardedfor=xforwardedfor,
                               smsid=sms_uuid)
 
             smsgwglobals.wislogger.debug("WIS: sendsms interface " + str(sms.getjson()))
@@ -523,17 +547,9 @@ class Root(object):
             except apperror.NoRoutesFoundError:
                 self.triggerwatchdog()
                 pass
-
-        cherrypy.response.status = 200
-        final_count = len(mobile_numbers_to_send)
-        success_message = ":" + str(final_count) + " sms added to the queue successfully"
-        if invalid_messages:
-            invalid_msg = ", ".join(invalid_messages)
-            success_message += ", " + invalid_msg
-        resp["message"] = success_message
-        self.triggerwatchdog()
-
-        return resp
+            except apperror.NotAllowedTimeFrame:
+                self.triggerwatchdog()
+                pass
 
 
 class Wisserver(object):

@@ -43,7 +43,6 @@ $.tablesorter.addParser({
 
 window.onload = function() {
     getRouting();
-    getSMSCount();
     var oldVal = "";
 
     $("#mobiles").on("change keyup paste", function() {
@@ -173,43 +172,47 @@ function sendSms() {
     }
 }
 
-function custom_alert( message, title ) {
-    if ( !title )
-        title = 'Alert';
-
-    if ( !message )
-        message = 'No Message to Display.';
-
-    return $("<div class='dialog' title='" + title + "'><p>" + message + "</p></div>")
-            .dialog({
-                title: title,
-                resizable: false,
-                modal: true
-            });
-}
-
 function sendsms_towis(appid, mobiles, content){
     data = {
         appid: appid,
         mobile: mobiles,
         content: content
     }
-    json_data = JSON.stringify(data)
+    json_data = JSON.stringify(data);
 
-    $.postJSON('/sendsms', json_data).done(function(data) {
-        response_message = data.message
-        if (response_message.match('.*not valid.*')){
-            toast_type = "warning"
-        }else{
-            toast_type = "success"
+    title = "Send SMS?"
+    warning_message = content
+
+    $('<div id="dialog-confirm" title=" ' + title + '">' +
+        '<p><span class="ui-icon ui-icon-alert" style="float:left; margin:12px 12px 20px 0;">' +
+        '</span>' + warning_message + '</p></div>').dialog({
+        resizable: false,
+        height: "auto",
+        width: 400,
+        modal: true,
+        buttons: {
+            "Start SMS campaign": function() {
+                $( this ).dialog( "close" );
+                $.postJSON('/sendsms', json_data).done(function(data) {
+                    response_message = data.message
+                    if (response_message.match('.*not valid.*')){
+                        toast_type = "warning"
+                    }else{
+                        toast_type = "success"
+                    }
+                    title = "SENT OK!"
+                    showToastr(toast_type, response_message);
+                    custom_alert(response_message, title)
+                }).fail(function(data){
+                    response_message = data.responseJSON.message
+                    error_message = "Can't send sms! ERROR_CODE: " + data.status + ". ERROR_MESSAGE:" + response_message;
+                    showToastr("error", error_message);
+                });
+            },
+            "Cancel": function() {
+                $( this ).dialog( "close" );
+            }
         }
-        title = "SENT OK!"
-        showToastr(toast_type, response_message);
-        custom_alert(response_message, title)
-    }).fail(function(data){
-        response_message = data.responseJSON.message
-        error_message = "Can't send sms! ERROR_CODE: " + data.status + ". ERROR_MESSAGE:" + response_message;
-        showToastr("error", error_message);
     });
 }
 
@@ -354,16 +357,35 @@ function restartModem(imsi) {
             imsi: imsi.toString(),
         }
         json_data = JSON.stringify(data)
-        $.postJSON('/restartmodem', json_data).done(function(data) {
-            warning_message = "Modem restart initiated. Check status later on"
-            title = "RESTART OK!"
-            showToastr("warning", warning_message);
-            custom_alert(warning_message, title)
-        }).fail(function(data){
-            response_message = data.responseJSON.message
-            error_message = "Can't restart modem! ERROR_CODE: " + data.status + ". ERROR_MESSAGE:" + response_message;
-            showToastr("error", error_message);
-        });
+
+        title = "Restart modem?"
+        warning_message = "Do you REALLY want to restart modem with SIM IMSI " + imsi.toString()
+
+        $('<div id="dialog-confirm" title=" ' + title + '">' +
+            '<p><span class="ui-icon ui-icon-alert" style="float:left; margin:12px 12px 20px 0;">' +
+            '</span>' + warning_message + '</p></div>').dialog({
+                resizable: false,
+                height: "auto",
+                width: 400,
+                modal: true,
+                buttons: {
+                    "Restart Modem": function() {
+                        $( this ).dialog( "close" );
+                        $.postJSON('/restartmodem', json_data).done(function(data) {
+                            warning_message = "Modem restart initiated. Check status later on"
+                            title = "RESTART OK!"
+                            showToastr("warning", warning_message);
+                        }).fail(function(data){
+                            response_message = data.responseJSON.message
+                            error_message = "Can't restart modem! ERROR_CODE: " + data.status + ". ERROR_MESSAGE:" + response_message;
+                            showToastr("error", error_message);
+                        });
+                    },
+                    "Cancel": function() {
+                        $( this ).dialog( "close" );
+                    }
+                }
+            });
     }
     else {
         warning_message = "IMSI can be only 15 digits string!"
@@ -397,6 +419,7 @@ function getRouting() {
                 $(this).find('td').eq(-1).after('<td><button class="btn" type="button" onclick="restartModem(' + sim_imsi + ')">Restart</button></td>');
             }
         });
+        getSMSCount();
     });
 
     getStatus();
@@ -449,8 +472,6 @@ function getSMSCount(){
         $("#sent_sms_total_today").text("N/A");
         $("#unprocessed_sms").text("N/A");
     });
-
-    setTimeout(getSMSCount, 10000);
 }
 
 $(document).ready(function() {
