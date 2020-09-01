@@ -321,8 +321,8 @@ class Ajax():
                 for cnt in sim_sms_sent:
                     if cnt["imsi"] == row["imsi"]:
                         row["sms_sent"] = cnt["sms_count"]
-                if not row["sms_count"]:
-                    row["sms_count"] = 0
+                if not row.get("sms_sent"):
+                    row["sms_sent"] = 0
                 # To lazy now to rename field in db. So change it just for frontend output
                 row["sms_scheduled"] = row["sms_count"]
                 del row["sms_count"]

@@ -47,6 +47,17 @@ class Watchdog_Scheduler():
         smsgwglobals.wislogger.debug("SCHEDULER: DELETE_OLD_SMS job starting. Interval: 7 days")
         self.scheduler.add_job(self.delete_old_sms, 'interval', days = 7)
 
+        smsgwglobals.wislogger.debug("SCHEDULER: TRIGGER_WATCHDOGS job starting. Interval: 15 seconds")
+        self.scheduler.add_job(self.trigger_watchdogs, 'interval', seconds = 15)
+
+    def trigger_watchdogs(self):
+        for route_watchdog in wisglobals.watchdogRouteThreadNotify:
+            smsgwglobals.wislogger.debug("SCHEDULER: TRIGGER_WATCHDOG [" + str(route_watchdog) + "] force triggered!")
+            wisglobals.watchdogRouteThreadNotify[route_watchdog].set()
+
+        smsgwglobals.wislogger.debug("SCHEDULER: TRIGGER_WATCHDOG [main] force triggered!")
+        wisglobals.watchdogThreadNotify.set()
+
     def delete_old_sms(self):
         self.db.delete_old_sms(wisglobals.cleanupseconds)
 
