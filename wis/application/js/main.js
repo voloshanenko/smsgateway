@@ -436,9 +436,15 @@ function getSMSCount(){
     $('#routingTable').find('tr').each(function(){
         available_modems += 1;
         blocked = $(this).find("td:nth-child(6)").html();
-        if (blocked != "Yes"){
-            scheduled_sms += parseInt($(this).find("td:nth-child(8)").html());
-            sms_limit += parseInt($(this).find("td:nth-child(7)").html());
+        if (blocked == "No" || blocked == "N/A" || blocked == "Check Skipped"){
+            temp_scheduled = parseInt($(this).find("td:nth-child(8)").html());
+            if (temp_scheduled){
+                scheduled_sms += temp_scheduled;
+            }
+            temp_sms_limit = parseInt($(this).find("td:nth-child(7)").html());
+            if (temp_sms_limit){
+                sms_limit += temp_sms_limit
+            }
         }
         scheduled_sms_modem = parseInt($(this).find("td:nth-child(8)").html());
         sent_sms_modem = parseInt($(this).find("td:nth-child(9)").html());

@@ -379,7 +379,7 @@ class Login(Htmlpage):
     def setBody(self):
         str_list = """
 <body>
-<table>
+<table style="margin-left:auto;margin-right:auto;top:50%;">
    <tbody>
       <tr>
          <td>
