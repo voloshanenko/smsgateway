@@ -202,7 +202,6 @@ function sendsms_towis(appid, mobiles, content){
                     }
                     title = "SENT OK!"
                     showToastr(toast_type, response_message);
-                    custom_alert(response_message, title)
                 }).fail(function(data){
                     response_message = data.responseJSON.message
                     error_message = "Can't send sms! ERROR_CODE: " + data.status + ". ERROR_MESSAGE:" + response_message;
@@ -437,7 +436,7 @@ function getSMSCount(){
     $('#routingTable').find('tr').each(function(){
         available_modems += 1;
         blocked = $(this).find("td:nth-child(6)").html();
-        if (blocked == "No" || blocked == "N/A"){
+        if (blocked != "Yes"){
             scheduled_sms += parseInt($(this).find("td:nth-child(8)").html());
             sms_limit += parseInt($(this).find("td:nth-child(7)").html());
         }
