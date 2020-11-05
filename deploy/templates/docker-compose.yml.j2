@@ -16,6 +16,10 @@ services:
     - LETSENCRYPT_EMAIL=${LETSENCRYPT_EMAIL}
     - ROOT_PASSWORD_HASH=${ROOT_PASSWORD_HASH}
     - PRODUCTION=${PRODUCTION}
+    logging:
+      options:
+        max-size: "200m"
+        max-file: "5"
     volumes:
       - ${LOCAL_DIR}/logs:/app/logs/
       - ${LOCAL_DIR}/db:/app/common/sqlite/
@@ -29,6 +33,10 @@ services:
     working_dir: /app/pis
     command: ["python", "pis.py"]
     restart: unless-stopped
+    logging:
+      options:
+        max-size: "200m"
+        max-file: "5"
     volumes:
       - ${LOCAL_DIR}/logs:/app/logs/
     networks:
@@ -42,6 +50,10 @@ services:
     restart: unless-stopped
     environment:
     - PID_ID={{ loop.index }}
+    logging:
+      options:
+        max-size: "200m"
+        max-file: "5"
     volumes:
       - ${LOCAL_DIR}/logs:/app/logs/
     networks:
