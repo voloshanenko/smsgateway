@@ -17,6 +17,7 @@ services:
     - ROOT_PASSWORD_HASH=${ROOT_PASSWORD_HASH}
     - PRODUCTION=${PRODUCTION}
     logging:
+      driver: "json-file"
       options:
         max-size: "200m"
         max-file: "5"
@@ -34,6 +35,7 @@ services:
     command: ["python", "pis.py"]
     restart: unless-stopped
     logging:
+      driver: "json-file"
       options:
         max-size: "200m"
         max-file: "5"
@@ -51,6 +53,7 @@ services:
     environment:
     - PID_ID={{ loop.index }}
     logging:
+      driver: "json-file"
       options:
         max-size: "200m"
         max-file: "5"

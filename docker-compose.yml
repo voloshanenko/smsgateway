@@ -16,6 +16,11 @@ services:
     - LETSENCRYPT_EMAIL=${LETSENCRYPT_EMAIL}
     - ROOT_PASSWORD_HASH=${ROOT_PASSWORD_HASH}
     - PRODUCTION=${PRODUCTION}
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "200m"
+        max-file: "5"
     volumes:
       - ${LOCAL_DIR}/logs:/app/logs/
       - ${LOCAL_DIR}/db:/app/common/sqlite/
@@ -29,6 +34,11 @@ services:
     working_dir: /app/pis
     command: ["python", "pis.py"]
     restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "200m"
+        max-file: "5"
     volumes:
       - ${LOCAL_DIR}/logs:/app/logs/
     networks:
@@ -41,6 +51,11 @@ services:
     restart: unless-stopped
     environment:
     - PID_ID=1
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "200m"
+        max-file: "5"
     volumes:
       - ${LOCAL_DIR}/logs:/app/logs/
     networks:
@@ -53,6 +68,11 @@ services:
     restart: unless-stopped
     environment:
     - PID_ID=2
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "200m"
+        max-file: "5"
     volumes:
       - ${LOCAL_DIR}/logs:/app/logs/
     networks:
@@ -65,6 +85,11 @@ services:
     restart: unless-stopped
     environment:
     - PID_ID=3
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "200m"
+        max-file: "5"
     volumes:
       - ${LOCAL_DIR}/logs:/app/logs/
     networks:
@@ -77,6 +102,11 @@ services:
     restart: unless-stopped
     environment:
     - PID_ID=4
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "200m"
+        max-file: "5"
     volumes:
       - ${LOCAL_DIR}/logs:/app/logs/
     networks:
@@ -89,6 +119,11 @@ services:
     restart: unless-stopped
     environment:
     - PID_ID=5
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "200m"
+        max-file: "5"
     volumes:
       - ${LOCAL_DIR}/logs:/app/logs/
     networks:
@@ -101,6 +136,11 @@ services:
     restart: unless-stopped
     environment:
     - PID_ID=6
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "200m"
+        max-file: "5"
     volumes:
       - ${LOCAL_DIR}/logs:/app/logs/
     networks:
@@ -113,6 +153,11 @@ services:
     restart: unless-stopped
     environment:
     - PID_ID=7
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "200m"
+        max-file: "5"
     volumes:
       - ${LOCAL_DIR}/logs:/app/logs/
     networks:
@@ -125,6 +170,11 @@ services:
     restart: unless-stopped
     environment:
     - PID_ID=8
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "200m"
+        max-file: "5"
     volumes:
       - ${LOCAL_DIR}/logs:/app/logs/
     networks:
@@ -137,6 +187,11 @@ services:
     restart: unless-stopped
     environment:
     - PID_ID=9
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "200m"
+        max-file: "5"
     volumes:
       - ${LOCAL_DIR}/logs:/app/logs/
     networks:
@@ -149,6 +204,11 @@ services:
     restart: unless-stopped
     environment:
     - PID_ID=10
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "200m"
+        max-file: "5"
     volumes:
       - ${LOCAL_DIR}/logs:/app/logs/
     networks:
@@ -161,6 +221,11 @@ services:
     restart: unless-stopped
     environment:
     - PID_ID=11
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "200m"
+        max-file: "5"
     volumes:
       - ${LOCAL_DIR}/logs:/app/logs/
     networks:
@@ -173,6 +238,11 @@ services:
     restart: unless-stopped
     environment:
     - PID_ID=12
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "200m"
+        max-file: "5"
     volumes:
       - ${LOCAL_DIR}/logs:/app/logs/
     networks:
@@ -185,6 +255,11 @@ services:
     restart: unless-stopped
     environment:
     - PID_ID=13
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "200m"
+        max-file: "5"
     volumes:
       - ${LOCAL_DIR}/logs:/app/logs/
     networks:
@@ -197,6 +272,11 @@ services:
     restart: unless-stopped
     environment:
     - PID_ID=14
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "200m"
+        max-file: "5"
     volumes:
       - ${LOCAL_DIR}/logs:/app/logs/
     networks:
@@ -209,6 +289,11 @@ services:
     restart: unless-stopped
     environment:
     - PID_ID=15
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "200m"
+        max-file: "5"
     volumes:
       - ${LOCAL_DIR}/logs:/app/logs/
     networks:
@@ -221,6 +306,11 @@ services:
     restart: unless-stopped
     environment:
     - PID_ID=16
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "200m"
+        max-file: "5"
     volumes:
       - ${LOCAL_DIR}/logs:/app/logs/
     networks:
